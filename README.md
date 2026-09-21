@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/icons/app_icon.jpg" width="120" alt="Spendly Logo" style="border-radius: 24px"/>
+  <img src="assets/icons/app_icon.png" width="120" alt="Spendly Logo"/>
 </p>
 
 <h1 align="center">Spendly</h1>
