@@ -12,6 +12,7 @@ class RouteNames {
   static const String manageCategories = 'manage_categories';
   static const String settings = 'settings';
   static const String setPassword = 'set_password';
+  static const String forgotPassword = 'forgot_password';
 }
 
 class RoutePaths {
@@ -28,4 +29,5 @@ class RoutePaths {
   static const String manageCategories = 'manage-categories';
   static const String settings = '/settings';
   static const String setPassword = '/set-password';
+  static const String forgotPassword = '/forgot-password';
 }

@@ -13,6 +13,7 @@ import '../../features/splash/presentation/screens/splash_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/signup_screen.dart';
 import '../../features/auth/presentation/screens/set_password_screen.dart';
+import '../../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../../shared/widgets/app_scaffold.dart';
 
 final appRouter = GoRouter(
@@ -40,6 +41,17 @@ final appRouter = GoRouter(
       pageBuilder: (context, state) => CustomTransitionPage(
         key: state.pageKey,
         child: const SignupScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+      ),
+    ),
+    GoRoute(
+      name: RouteNames.forgotPassword,
+      path: RoutePaths.forgotPassword,
+      pageBuilder: (context, state) => CustomTransitionPage(
+        key: state.pageKey,
+        child: const ForgotPasswordScreen(),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(opacity: animation, child: child);
         },

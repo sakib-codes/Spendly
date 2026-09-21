@@ -8,6 +8,7 @@ import 'package:spendly/shared/providers/budget_provider.dart';
 import 'package:spendly/shared/providers/category_provider.dart';
 import 'package:spendly/shared/utils/currency_formatter.dart';
 import 'package:spendly/shared/widgets/zoomable_line_chart.dart';
+import 'package:spendly/shared/widgets/glass_card.dart';
 import 'package:intl/intl.dart';
 
 class AnalyticsScreen extends ConsumerWidget {
@@ -182,7 +183,7 @@ class AnalyticsScreen extends ConsumerWidget {
             children: [
               Text(progress.categoryName, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
               TextButton(
-                onPressed: () => _showSetBudgetSheet(context, ref, progress),
+                onPressed: () => _showSetBudgetSheet(context, progress),
                 style: TextButton.styleFrom(
                   minimumSize: Size.zero,
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -232,70 +233,13 @@ class AnalyticsScreen extends ConsumerWidget {
     );
   }
 
-  void _showSetBudgetSheet(BuildContext context, WidgetRef ref, CategoryBudgetProgress progress) {
-    final theme = Theme.of(context);
-    final controller = TextEditingController(text: progress.budgetedAmount > 0 ? progress.budgetedAmount.toStringAsFixed(0) : '');
-
+  void _showSetBudgetSheet(BuildContext context, CategoryBudgetProgress progress) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       useRootNavigator: true,
       backgroundColor: Colors.transparent,
-      builder: (context) {
-        return Container(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom + 32,
-            top: 32,
-            left: 24,
-            right: 24,
-          ),
-          decoration: BoxDecoration(
-            color: theme.scaffoldBackgroundColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Set Budget for ${progress.categoryName}', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 24),
-              TextField(
-                controller: controller,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: InputDecoration(
-                  labelText: 'Amount (৳)',
-                  filled: true,
-                  fillColor: theme.colorScheme.surface,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                ),
-                autofocus: true,
-              ),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    final amount = double.tryParse(controller.text) ?? 0.0;
-                    if (amount > 0) {
-                      ref.read(budgetProvider.notifier).setBudget(progress.categoryId, amount);
-                    } else {
-                      ref.read(budgetProvider.notifier).removeBudget(progress.categoryId);
-                    }
-                    Navigator.pop(context);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: theme.colorScheme.primary,
-                    foregroundColor: theme.colorScheme.onPrimary,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
-                  child: const Text('Save Budget', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+      builder: (context) => _SetBudgetSheet(progress: progress),
     );
   }
 
@@ -449,6 +393,89 @@ class AnalyticsScreen extends ConsumerWidget {
                 const SizedBox(width: 4),
                 Text(diffText, style: theme.textTheme.labelMedium?.copyWith(color: color, fontWeight: FontWeight.bold)),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SetBudgetSheet extends ConsumerStatefulWidget {
+  final CategoryBudgetProgress progress;
+
+  const _SetBudgetSheet({required this.progress});
+
+  @override
+  ConsumerState<_SetBudgetSheet> createState() => _SetBudgetSheetState();
+}
+
+class _SetBudgetSheetState extends ConsumerState<_SetBudgetSheet> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(
+      text: widget.progress.budgetedAmount > 0 ? widget.progress.budgetedAmount.toStringAsFixed(0) : '',
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
+    return GlassCard(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom + 32,
+        top: 32,
+        left: 24,
+        right: 24,
+      ),
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Set Budget', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _controller,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(
+              hintText: '0',
+              prefixText: '\$ ',
+              filled: true,
+              fillColor: theme.colorScheme.surface,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+            ),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                final amount = double.tryParse(_controller.text) ?? 0.0;
+                if (amount > 0) {
+                  ref.read(budgetProvider.notifier).setBudget(widget.progress.categoryId, amount);
+                } else {
+                  ref.read(budgetProvider.notifier).removeBudget(widget.progress.categoryId);
+                }
+                Navigator.of(context, rootNavigator: true).pop();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.colorScheme.primary,
+                foregroundColor: theme.colorScheme.onPrimary,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+              child: const Text('Save Budget', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ),
           ),
         ],

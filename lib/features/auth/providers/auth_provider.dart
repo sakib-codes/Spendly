@@ -14,6 +14,12 @@ enum AuthStatus {
 class AuthNotifier extends Notifier<AuthStatus> {
   StreamSubscription<User?>? _authStateSubscription;
 
+  bool get hasPasswordProvider {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return false;
+    return user.providerData.any((info) => info.providerId == 'password');
+  }
+
   @override
   AuthStatus build() {
     _authStateSubscription?.cancel();
@@ -94,8 +100,47 @@ class AuthNotifier extends Notifier<AuthStatus> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw 'User not logged in';
       await user.updatePassword(newPassword);
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'requires-recent-login') {
+        throw 'For your security, please log out and log back in before changing your password.';
+      }
+      throw e.message ?? 'An unknown error occurred';
     } catch (e) {
       throw 'Failed to update password: $e';
+    }
+  }
+
+  Future<void> sendPasswordResetEmail(String email) async {
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+    } on FirebaseAuthException catch (e) {
+      throw e.message ?? 'An unknown error occurred';
+    } catch (e) {
+      throw 'Failed to send password reset email: $e';
+    }
+  }
+
+  Future<void> changePasswordWithReauth(String oldPassword, String newPassword) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw 'User not logged in';
+      
+      final email = user.email;
+      if (email == null) throw 'No email associated with this account';
+
+      // Re-authenticate
+      final credential = EmailAuthProvider.credential(email: email, password: oldPassword);
+      await user.reauthenticateWithCredential(credential);
+
+      // Update password
+      await user.updatePassword(newPassword);
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
+        throw 'Incorrect old password';
+      }
+      throw e.message ?? 'An unknown error occurred';
+    } catch (e) {
+      throw 'Failed to change password: $e';
     }
   }
 

@@ -6,6 +6,7 @@ import 'package:spendly/app/theme/app_colors.dart';
 import 'package:spendly/shared/widgets/glass_card.dart';
 import 'package:spendly/shared/widgets/glass_dialog.dart';
 import 'package:spendly/shared/widgets/glass_date_picker.dart';
+import 'package:spendly/shared/widgets/glass_time_picker.dart';
 import 'package:spendly/shared/widgets/primary_button.dart';
 import 'package:spendly/shared/providers/transaction_provider.dart';
 import 'package:spendly/shared/providers/category_provider.dart';
@@ -458,7 +459,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
           lastDate: DateTime(2100),
         );
         if (date != null && mounted) {
-          final time = await showTimePicker(
+          final time = await GlassTimePicker.show(
             context: context,
             initialTime: TimeOfDay.fromDateTime(_selectedDate),
           );
