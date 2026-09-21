@@ -162,7 +162,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with SingleTickerProv
                           _buildTextField(context, 'Email', Icons.email_rounded, _emailController),
                           SizedBox(height: size.height * 0.02),
                           _buildTextField(context, 'Password', Icons.lock_rounded, _passwordController, obscureText: true),
-                          SizedBox(height: size.height * 0.03),
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: GestureDetector(
+                              onTap: _isLoading ? null : () => context.push(RoutePaths.forgotPassword),
+                              child: Text(
+                                'Forgot Password?',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: size.height * 0.02),
                           
                           Container(
                             width: double.infinity,
