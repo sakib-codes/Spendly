@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:spendly/app/theme/app_colors.dart';
 import 'package:spendly/shared/widgets/glass_card.dart';
+import 'package:spendly/shared/widgets/glass_dialog.dart';
+import 'package:spendly/shared/widgets/glass_date_picker.dart';
 import 'package:spendly/shared/widgets/primary_button.dart';
 import 'package:spendly/shared/providers/transaction_provider.dart';
 import 'package:spendly/shared/providers/category_provider.dart';
@@ -61,29 +63,13 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final categoriesState = ref.watch(categoryProvider);
-    
-    if (_selectedCategory == null) {
-      categoriesState.maybeWhen(
-        data: (categories) {
-          Category? catToSelect;
-          if (widget.transactionToEdit != null) {
-            catToSelect = categories.where((c) => c.id == widget.transactionToEdit!.categoryId).firstOrNull;
-          }
-          if (catToSelect == null) {
-            final type = isExpense ? CategoryType.expense : CategoryType.income;
-            final available = categories.where((c) => c.type == type || c.type == CategoryType.both).toList();
-            if (available.isNotEmpty) {
-              catToSelect = available.first;
-            }
-          }
-          if (catToSelect != null) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) setState(() => _selectedCategory = catToSelect);
-            });
-          }
-        },
-        orElse: () {},
-      );
+
+    // If editing, try to pre-select the category once categories are loaded
+    if (_selectedCategory == null && widget.transactionToEdit != null) {
+      final categories = categoriesState.value;
+      if (categories != null) {
+        _selectedCategory = categories.where((c) => c.id == widget.transactionToEdit!.categoryId).firstOrNull;
+      }
     }
 
     return Scaffold(
@@ -98,8 +84,9 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         ),
       ),
       body: SafeArea(
+        bottom: false,
         child: ListView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 130),
           children: [
             _buildTypeToggle(context),
             const SizedBox(height: 32),
@@ -127,17 +114,32 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
               text: widget.transactionToEdit != null ? 'Update Transaction' : 'Save Transaction',
               onPressed: () {
                 final amount = double.tryParse(_amountController.text) ?? 0.0;
-                final title = _titleController.text.isEmpty ? 'New Transaction' : _titleController.text;
+                
+                if (amount <= 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please enter a valid amount greater than 0')),
+                  );
+                  return;
+                }
+                
+                if (_selectedCategory == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please select a category')),
+                  );
+                  return;
+                }
+
+                final title = _titleController.text.trim().isEmpty ? 'New Transaction' : _titleController.text.trim();
 
                 final transaction = Transaction(
                   id: widget.transactionToEdit?.id ?? const Uuid().v4(),
                   title: title,
                   amount: amount,
                   type: isExpense ? TransactionType.expense : TransactionType.income,
-                  categoryId: _selectedCategory?.id ?? 'default_category_id',
+                  categoryId: _selectedCategory!.id,
                   date: _selectedDate,
                   paymentMethod: _selectedPaymentMethod,
-                  note: _noteController.text.isEmpty ? null : _noteController.text,
+                  note: _noteController.text.trim().isEmpty ? null : _noteController.text.trim(),
                   createdAt: widget.transactionToEdit?.createdAt ?? DateTime.now(),
                   updatedAt: DateTime.now(),
                 );
@@ -159,13 +161,9 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   Widget _buildTypeToggle(BuildContext context) {
     final theme = Theme.of(context);
     
-    return Container(
+    return GlassCard(
+      padding: EdgeInsets.zero,
       height: 56,
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: theme.colorScheme.onSurface.withValues(alpha: 0.1)),
-      ),
       child: Row(
         children: [
           Expanded(
@@ -179,8 +177,9 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
               },
               child: Container(
                 decoration: BoxDecoration(
-                  color: isExpense ? theme.colorScheme.surface : Colors.transparent,
-                  borderRadius: BorderRadius.circular(28),
+                  color: isExpense ? theme.colorScheme.surfaceContainer : Colors.transparent,
+                  borderRadius: BorderRadius.circular(24),
+                  border: isExpense ? Border.all(color: theme.colorScheme.onSurface.withValues(alpha: 0.05)) : null,
                   boxShadow: isExpense ? [
                     BoxShadow(color: theme.shadowColor.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))
                   ] : null,
@@ -208,8 +207,9 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
               },
               child: Container(
                 decoration: BoxDecoration(
-                  color: !isExpense ? theme.colorScheme.surface : Colors.transparent,
-                  borderRadius: BorderRadius.circular(28),
+                  color: !isExpense ? theme.colorScheme.surfaceContainer : Colors.transparent,
+                  borderRadius: BorderRadius.circular(24),
+                  border: !isExpense ? Border.all(color: theme.colorScheme.onSurface.withValues(alpha: 0.05)) : null,
                   boxShadow: !isExpense ? [
                     BoxShadow(color: theme.shadowColor.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))
                   ] : null,
@@ -346,9 +346,10 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      useRootNavigator: true,
       builder: (context) {
-        return Material(
-          color: theme.scaffoldBackgroundColor,
+        return GlassCard(
+          padding: EdgeInsets.zero,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
@@ -450,7 +451,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
     return InkWell(
       onTap: () async {
-        final date = await showDatePicker(
+        final date = await GlassDatePicker.show(
           context: context,
           initialDate: _selectedDate,
           firstDate: DateTime(2000),
@@ -542,42 +543,43 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
   void _showPaymentMethodPicker(BuildContext context) {
     final theme = Theme.of(context);
-    showModalBottomSheet(
+    
+    GlassDialog.show(
       context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) {
-        return Material(
-          color: theme.scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
-            child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40, height: 4,
-                decoration: BoxDecoration(color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4), borderRadius: BorderRadius.circular(2)),
+      title: 'Payment Method',
+      actions: const [],
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: _paymentMethods.map((method) {
+          final isSelected = _selectedPaymentMethod == method;
+          return InkWell(
+            onTap: () {
+              setState(() => _selectedPaymentMethod = method);
+              Navigator.pop(context);
+            },
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    method,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurface,
+                    ),
+                  ),
+                  if (isSelected)
+                    Icon(Icons.check_circle_rounded, color: theme.colorScheme.primary)
+                  else
+                    const SizedBox(width: 24, height: 24),
+                ],
               ),
-              const SizedBox(height: 20),
-              Text('Payment Method', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 16),
-              ..._paymentMethods.map((method) {
-                final isSelected = _selectedPaymentMethod == method;
-                return ListTile(
-                  title: Text(method, style: theme.textTheme.bodyLarge?.copyWith(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
-                  trailing: isSelected ? Icon(Icons.check_rounded, color: theme.colorScheme.primary) : null,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  onTap: () {
-                    setState(() => _selectedPaymentMethod = method);
-                    Navigator.pop(context);
-                  },
-                );
-              }),
-            ],
-          ),
-        ));
-      },
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 

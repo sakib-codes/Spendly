@@ -1,7 +1,7 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:spendly/app/router/route_names.dart';
-
 
 class FloatingNavigationBar extends StatelessWidget {
   final int currentIndex;
@@ -20,10 +20,9 @@ class FloatingNavigationBar extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 30),
       child: Container(
-        height: 70,
+        height: 60,
         decoration: BoxDecoration(
-          color: colors.surface,
-          borderRadius: BorderRadius.circular(35),
+          borderRadius: BorderRadius.circular(30),
           boxShadow: [
             BoxShadow(
               color: colors.shadow.withValues(alpha: 0.1),
@@ -32,58 +31,50 @@ class FloatingNavigationBar extends StatelessWidget {
             )
           ],
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            Expanded(child: Center(child: _buildNavItem(context, 0, Icons.home_rounded, 'Home'))),
-            Expanded(child: Center(child: _buildNavItem(context, 1, Icons.list_alt_rounded, 'Records'))),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: _buildFab(context),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(30),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              color: colors.surfaceContainer,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Expanded(child: Center(child: _buildNavItem(context, 0, Icons.space_dashboard_outlined, Icons.space_dashboard_rounded))),
+                  Expanded(child: Center(child: _buildNavItem(context, 1, Icons.receipt_outlined, Icons.receipt_rounded))),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: _buildFab(context),
+                  ),
+                  Expanded(child: Center(child: _buildNavItem(context, 2, Icons.pie_chart_outline_rounded, Icons.pie_chart_rounded))),
+                  Expanded(child: Center(child: _buildNavItem(context, 3, Icons.person_outline_rounded, Icons.person_rounded))),
+                ],
+              ),
             ),
-            Expanded(child: Center(child: _buildNavItem(context, 2, Icons.pie_chart_rounded, 'Analytics'))),
-            Expanded(child: Center(child: _buildNavItem(context, 3, Icons.settings_rounded, 'Settings'))),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildNavItem(BuildContext context, int index, IconData icon, String label) {
+  Widget _buildNavItem(BuildContext context, int index, IconData outlinedIcon, IconData filledIcon) {
     final isSelected = currentIndex == index;
     final theme = Theme.of(context);
     
     return GestureDetector(
       onTap: () => onTap(index),
       behavior: HitTestBehavior.opaque,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: isSelected ? theme.colorScheme.primary.withValues(alpha: 0.1) : Colors.transparent,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(
-              icon,
-              color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
-              size: 20,
-            ),
-          ),
-          const SizedBox(height: 4),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              label,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                fontSize: 10,
-              ),
-            ),
-          ),
-        ],
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: isSelected ? theme.colorScheme.primary.withValues(alpha: 0.1) : Colors.transparent,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          isSelected ? filledIcon : outlinedIcon,
+          color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+          size: 28,
+        ),
       ),
     );
   }
@@ -93,8 +84,8 @@ class FloatingNavigationBar extends StatelessWidget {
     return GestureDetector(
       onTap: () => context.pushNamed(RouteNames.addTransaction),
       child: Container(
-        width: 56,
-        height: 56,
+        width: 48,
+        height: 48,
         decoration: BoxDecoration(
           color: theme.colorScheme.primary,
           shape: BoxShape.circle,

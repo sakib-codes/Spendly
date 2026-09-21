@@ -8,8 +8,11 @@ import '../../features/transactions/presentation/screens/add_transaction_screen.
 import '../../features/transactions/presentation/screens/transaction_details_screen.dart';
 import '../../features/analytics/presentation/screens/analytics_screen.dart';
 import '../../features/settings/presentation/screens/manage_categories_screen.dart';
-import '../../features/settings/presentation/screens/settings_screen.dart';
+import '../../features/settings/presentation/screens/profile_screen.dart';
 import '../../features/splash/presentation/screens/splash_screen.dart';
+import '../../features/auth/presentation/screens/login_screen.dart';
+import '../../features/auth/presentation/screens/signup_screen.dart';
+import '../../features/auth/presentation/screens/set_password_screen.dart';
 import '../../shared/widgets/app_scaffold.dart';
 
 final appRouter = GoRouter(
@@ -19,6 +22,33 @@ final appRouter = GoRouter(
       name: RouteNames.splash,
       path: RoutePaths.splash,
       builder: (context, state) => const SplashScreen(),
+    ),
+    GoRoute(
+      name: RouteNames.login,
+      path: RoutePaths.login,
+      pageBuilder: (context, state) => CustomTransitionPage(
+        key: state.pageKey,
+        child: const LoginScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+      ),
+    ),
+    GoRoute(
+      name: RouteNames.signup,
+      path: RoutePaths.signup,
+      pageBuilder: (context, state) => CustomTransitionPage(
+        key: state.pageKey,
+        child: const SignupScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(opacity: animation, child: child);
+        },
+      ),
+    ),
+    GoRoute(
+      name: RouteNames.setPassword,
+      path: RoutePaths.setPassword,
+      builder: (context, state) => const SetPasswordScreen(),
     ),
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
@@ -71,7 +101,7 @@ final appRouter = GoRouter(
             GoRoute(
               name: RouteNames.settings,
               path: RoutePaths.settings,
-              builder: (context, state) => const SettingsScreen(),
+              builder: (context, state) => const ProfileScreen(),
               routes: [
                 GoRoute(
                   name: RouteNames.categories,
