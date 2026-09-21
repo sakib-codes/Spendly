@@ -11,7 +11,6 @@ class TransactionNotifier extends AsyncNotifier<List<Transaction>> {
   }
 
   Future<void> addTransaction(Transaction transaction) async {
-    state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
       final repository = ref.read(transactionRepositoryProvider);
       await repository.addTransaction(transaction);
@@ -20,7 +19,6 @@ class TransactionNotifier extends AsyncNotifier<List<Transaction>> {
   }
 
   Future<void> deleteTransaction(String id) async {
-    state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
       final repository = ref.read(transactionRepositoryProvider);
       await repository.deleteTransaction(id);
@@ -29,7 +27,6 @@ class TransactionNotifier extends AsyncNotifier<List<Transaction>> {
   }
 
   Future<void> updateTransaction(Transaction transaction) async {
-    state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
       final repository = ref.read(transactionRepositoryProvider);
       await repository.updateTransaction(transaction);
@@ -38,7 +35,6 @@ class TransactionNotifier extends AsyncNotifier<List<Transaction>> {
   }
 
   Future<void> clearAll() async {
-    state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
       final repository = ref.read(transactionRepositoryProvider);
       await repository.clearAllTransactions();

@@ -2,18 +2,19 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lottie/lottie.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/router/route_names.dart';
 import '../../../../app/theme/app_colors.dart';
-import '../../../../shared/widgets/glass_card.dart';
+import '../../../auth/providers/auth_provider.dart';
 
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
@@ -36,10 +37,15 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     _controller.forward();
 
-    // Navigate to Home after delay
+    // Navigate based on auth state after delay
     Future.delayed(const Duration(milliseconds: 4000), () {
       if (mounted) {
-        context.go(RoutePaths.home);
+        final authState = ref.read(authProvider);
+        if (authState == AuthStatus.authenticated) {
+          context.go(RoutePaths.home);
+        } else {
+          context.go(RoutePaths.login);
+        }
       }
     });
   }
@@ -109,17 +115,20 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.04),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Lottie.asset(
-                      'assets/animations/wallet.lottie',
-                      width: 200,
-                      height: 200,
-                      repeat: false,
-                      fit: BoxFit.contain,
+                  Hero(
+                    tag: 'app_logo',
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.04),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Lottie.asset(
+                        'assets/animations/wallet.lottie',
+                        width: 200,
+                        height: 200,
+                        repeat: false,
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 32),

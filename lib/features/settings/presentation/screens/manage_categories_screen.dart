@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:spendly/shared/widgets/glass_dialog.dart';
 import 'package:go_router/go_router.dart';
 import 'package:spendly/app/theme/app_colors.dart';
 import 'package:spendly/shared/widgets/glass_card.dart';
@@ -185,49 +186,62 @@ class _ManageCategoriesScreenState extends ConsumerState<ManageCategoriesScreen>
     final transactionCount = categoryTransactions.length;
     final totalAmount = categoryTransactions.fold<double>(0, (sum, t) => sum + t.amount);
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Dismissible(
-        key: ValueKey(category.id),
-        direction: DismissDirection.endToStart,
-        background: Container(
-          alignment: Alignment.centerRight,
-          padding: const EdgeInsets.only(right: 20.0),
-          decoration: BoxDecoration(
-            color: Colors.red.withValues(alpha: 0.8),
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: const Icon(Icons.delete_outline_rounded, color: Colors.white),
+    return Dismissible(
+      key: ValueKey(category.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.only(right: 20.0),
+        decoration: BoxDecoration(
+          color: Colors.red.withValues(alpha: 0.8),
+          borderRadius: BorderRadius.circular(24),
         ),
-        confirmDismiss: (direction) async {
-          return await showDialog(
+        child: const Icon(Icons.delete_outline_rounded, color: Colors.white),
+      ),
+      confirmDismiss: (direction) async {
+        if (transactionCount > 0) {
+          return await GlassDialog.show<bool>(
             context: context,
-            builder: (BuildContext context) {
-              return AlertDialog(
-                title: const Text("Confirm"),
-                content: const Text("Are you sure you wish to delete this category?"),
-                actions: [
-                  TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text("CANCEL")),
-                  TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text("DELETE", style: TextStyle(color: Colors.red))),
-                ],
-              );
-            },
-          );
-        },
-        onDismissed: (direction) {
-          ref.read(categoryProvider.notifier).deleteCategory(category.id);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('${category.name} deleted'),
-              action: SnackBarAction(
-                label: 'UNDO',
-                onPressed: () {
-                  ref.read(categoryProvider.notifier).addCategory(category);
-                },
-              ),
+            title: "Cannot Delete",
+            icon: const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 48),
+            content: Text(
+              "This category is used in $transactionCount transaction(s).\n\nPlease delete or re-assign them first.",
+              textAlign: TextAlign.center,
             ),
+            actions: [
+              TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text("OK", style: TextStyle(fontWeight: FontWeight.bold))),
+            ],
           );
-        },
+        }
+
+        return await GlassDialog.show<bool>(
+          context: context,
+          title: "Confirm Delete",
+          icon: const Icon(Icons.delete_outline_rounded, color: Colors.red, size: 48),
+          content: const Text("Are you sure you wish to delete this category?", textAlign: TextAlign.center),
+          actions: [
+            TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text("CANCEL")),
+            TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text("DELETE", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))),
+          ],
+        );
+      },
+      onDismissed: (direction) {
+        ref.read(categoryProvider.notifier).deleteCategory(category.id);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${category.name} deleted'),
+            action: SnackBarAction(
+              label: 'UNDO',
+              onPressed: () {
+                ref.read(categoryProvider.notifier).addCategory(category);
+              },
+            ),
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
         child: GlassCard(
           padding: const EdgeInsets.all(16),
           child: Row(
@@ -248,23 +262,19 @@ class _ManageCategoriesScreenState extends ConsumerState<ManageCategoriesScreen>
                   children: [
                     Text(
                       category.name,
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 4),
                     Text(
-                      '$transactionCount transaction${transactionCount == 1 ? '' : 's'}',
+                      transactionCount > 0 
+                          ? '$transactionCount transactions • ${formatBDT(totalAmount)}' 
+                          : 'No transactions yet',
                       style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                     ),
                   ],
                 ),
               ),
-              if (totalAmount > 0)
-                Text(
-                  formatBDT(totalAmount),
-                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                ),
+              Icon(Icons.drag_handle_rounded, color: theme.colorScheme.onSurface.withValues(alpha: 0.2)),
             ],
           ),
         ),
@@ -276,6 +286,7 @@ class _ManageCategoriesScreenState extends ConsumerState<ManageCategoriesScreen>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       builder: (context) => _AddCategorySheet(initialType: initialType),
     );
@@ -313,121 +324,186 @@ class _AddCategorySheetState extends ConsumerState<_AddCategorySheet> {
     final theme = Theme.of(context);
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     
-    return Container(
-      margin: EdgeInsets.only(bottom: bottomInset),
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Text('New Category', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold), textAlign: TextAlign.center),
-          const SizedBox(height: 24),
-          
-          // Type Toggle
-          Row(
-            children: [
-              Expanded(
-                child: ChoiceChip(
-                  label: const Text('Expense'),
-                  selected: _selectedType == CategoryType.expense,
-                  onSelected: (selected) {
-                    if (selected) setState(() => _selectedType = CategoryType.expense);
-                  },
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottomInset, left: 16, right: 16, top: 16),
+      child: GlassCard(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: ChoiceChip(
-                  label: const Text('Income'),
-                  selected: _selectedType == CategoryType.income,
-                  onSelected: (selected) {
-                    if (selected) setState(() => _selectedType = CategoryType.income);
-                  },
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          
-          // Name Input
-          TextField(
-            controller: _nameController,
-            decoration: InputDecoration(
-              labelText: 'Category Name',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
             ),
-          ),
-          const SizedBox(height: 24),
-          
-          // Icon Selector
-          Text('Select Icon', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 120,
-            child: GridView.builder(
-              scrollDirection: Axis.horizontal,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-              ),
-              itemCount: CategoryIconHelper.getAllIcons().length,
-              itemBuilder: (context, index) {
-                final entry = CategoryIconHelper.getAllIcons().entries.elementAt(index);
-                final isSelected = _selectedIconKey == entry.key;
-                final color = CategoryIconHelper.getColor(entry.key);
-                
-                return GestureDetector(
-                  onTap: () => setState(() => _selectedIconKey = entry.key),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: isSelected ? color.withValues(alpha: 0.2) : theme.colorScheme.surface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: isSelected ? Border.all(color: color, width: 2) : Border.all(color: theme.colorScheme.onSurface.withValues(alpha: 0.1)),
+            const SizedBox(height: 24),
+            Text('New Category', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+            const SizedBox(height: 24),
+            
+            // Glass Type Toggle
+            GlassCard(
+              padding: EdgeInsets.zero,
+              height: 56,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        if (_selectedType == CategoryType.expense) return;
+                        setState(() => _selectedType = CategoryType.expense);
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: _selectedType == CategoryType.expense ? theme.colorScheme.surfaceContainer : Colors.transparent,
+                          borderRadius: BorderRadius.circular(24),
+                          border: _selectedType == CategoryType.expense ? Border.all(color: theme.colorScheme.onSurface.withValues(alpha: 0.05)) : null,
+                          boxShadow: _selectedType == CategoryType.expense ? [
+                            BoxShadow(color: theme.shadowColor.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))
+                          ] : null,
+                        ),
+                        child: Center(
+                          child: Text(
+                            'Expense',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: _selectedType == CategoryType.expense ? AppColors.expenseAccent : theme.colorScheme.onSurfaceVariant,
+                              fontWeight: _selectedType == CategoryType.expense ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
-                    child: CategoryIconHelper.getIconWidget(entry.key, size: 24, color: isSelected ? color : theme.colorScheme.onSurfaceVariant),
                   ),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        if (_selectedType == CategoryType.income) return;
+                        setState(() => _selectedType = CategoryType.income);
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: _selectedType == CategoryType.income ? theme.colorScheme.surfaceContainer : Colors.transparent,
+                          borderRadius: BorderRadius.circular(24),
+                          border: _selectedType == CategoryType.income ? Border.all(color: theme.colorScheme.onSurface.withValues(alpha: 0.05)) : null,
+                          boxShadow: _selectedType == CategoryType.income ? [
+                            BoxShadow(color: theme.shadowColor.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))
+                          ] : null,
+                        ),
+                        child: Center(
+                          child: Text(
+                            'Income',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: _selectedType == CategoryType.income ? AppColors.incomeAccent : theme.colorScheme.onSurfaceVariant,
+                              fontWeight: _selectedType == CategoryType.income ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // Custom Name Input
+            GlassCard(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.title_rounded, color: theme.colorScheme.primary, size: 20),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: TextField(
+                      controller: _nameController,
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        hintText: 'Category Name',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // Icon Selector
+            Text('Select Icon', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 120,
+              child: GridView.builder(
+                scrollDirection: Axis.horizontal,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                ),
+                itemCount: CategoryIconHelper.getAllIcons().length,
+                itemBuilder: (context, index) {
+                  final entry = CategoryIconHelper.getAllIcons().entries.elementAt(index);
+                  final isSelected = _selectedIconKey == entry.key;
+                  final color = CategoryIconHelper.getColor(entry.key);
+                  
+                  return GestureDetector(
+                    onTap: () => setState(() => _selectedIconKey = entry.key),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isSelected ? color.withValues(alpha: 0.2) : theme.colorScheme.surface,
+                        borderRadius: BorderRadius.circular(16),
+                        border: isSelected ? Border.all(color: color, width: 2) : Border.all(color: theme.colorScheme.onSurface.withValues(alpha: 0.1)),
+                      ),
+                      child: CategoryIconHelper.getIconWidget(entry.key, size: 24, color: isSelected ? color : theme.colorScheme.onSurfaceVariant),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 32),
+            
+            // Save Button
+            PrimaryButton(
+              text: 'Save Category',
+              onPressed: () {
+                final name = _nameController.text.trim();
+                if (name.isEmpty) return;
+                
+                final existingCategories = ref.read(categoryProvider).value ?? [];
+                if (existingCategories.any((c) => c.name.toLowerCase() == name.toLowerCase())) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('A category with this name already exists.')),
+                  );
+                  return;
+                }
+                
+                final newCategory = Category(
+                  id: const Uuid().v4(),
+                  name: name,
+                  icon: _selectedIconKey,
+                  type: _selectedType,
+                  createdAt: DateTime.now(),
                 );
+                
+                ref.read(categoryProvider.notifier).addCategory(newCategory);
+                Navigator.pop(context);
               },
             ),
-          ),
-          const SizedBox(height: 32),
-          
-          // Save Button
-          PrimaryButton(
-            text: 'Save Category',
-            onPressed: () {
-              if (_nameController.text.trim().isEmpty) return;
-              
-              final newCategory = Category(
-                id: const Uuid().v4(),
-                name: _nameController.text.trim(),
-                icon: _selectedIconKey,
-                type: _selectedType,
-                createdAt: DateTime.now(),
-              );
-              
-              ref.read(categoryProvider.notifier).addCategory(newCategory);
-              Navigator.pop(context);
-            },
-          ),
-          const SizedBox(height: 16),
-        ],
+            const SizedBox(height: 16),
+          ],
+        ),
       ),
     );
   }

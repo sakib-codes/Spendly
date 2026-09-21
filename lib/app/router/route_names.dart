@@ -1,5 +1,7 @@
 class RouteNames {
   static const String splash = 'splash';
+  static const String login = 'login';
+  static const String signup = 'signup';
   static const String home = 'home';
   static const String transactions = 'transactions';
   static const String addTransaction = 'add_transaction';
@@ -9,10 +11,13 @@ class RouteNames {
   static const String addCategory = 'add_category';
   static const String manageCategories = 'manage_categories';
   static const String settings = 'settings';
+  static const String setPassword = 'set_password';
 }
 
 class RoutePaths {
   static const String splash = '/splash';
+  static const String login = '/login';
+  static const String signup = '/signup';
   static const String home = '/home';
   static const String transactions = '/transactions';
   static const String addTransaction = 'add';
@@ -22,4 +27,5 @@ class RoutePaths {
   static const String addCategory = 'add';
   static const String manageCategories = 'manage-categories';
   static const String settings = '/settings';
+  static const String setPassword = '/set-password';
 }

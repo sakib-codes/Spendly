@@ -5,6 +5,22 @@ import '../../domain/entities/category.dart';
 import 'transaction_provider.dart';
 import 'category_provider.dart';
 
+class SelectedMonthNotifier extends Notifier<DateTime> {
+  @override
+  DateTime build() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month);
+  }
+
+  void setMonth(DateTime newMonth) {
+    state = newMonth;
+  }
+}
+
+final selectedMonthProvider = NotifierProvider<SelectedMonthNotifier, DateTime>(() {
+  return SelectedMonthNotifier();
+});
+
 class DashboardStats {
   final double totalBalance;
   final double totalIncome;
@@ -24,10 +40,10 @@ final dashboardStatsProvider = Provider<DashboardStats>((ref) {
     data: (transactions) {
       double income = 0;
       double expense = 0;
-      final now = DateTime.now();
+      final selectedMonth = ref.watch(selectedMonthProvider);
 
       for (var t in transactions) {
-        if (t.date.month == now.month && t.date.year == now.year) {
+        if (t.date.month == selectedMonth.month && t.date.year == selectedMonth.year) {
           if (t.type == TransactionType.income) {
             income += t.amount;
           } else {
@@ -63,8 +79,8 @@ final spendingBreakdownProvider = Provider<List<CategorySpending>>((ref) {
     data: (transactions) {
       return categoriesState.maybeWhen(
         data: (categories) {
-          final now = DateTime.now();
-          final expenseTransactions = transactions.where((t) => t.type == TransactionType.expense && t.date.month == now.month && t.date.year == now.year).toList();
+          final selectedMonth = ref.watch(selectedMonthProvider);
+          final expenseTransactions = transactions.where((t) => t.type == TransactionType.expense && t.date.month == selectedMonth.month && t.date.year == selectedMonth.year).toList();
           if (expenseTransactions.isEmpty) return [];
 
           double totalExpense = expenseTransactions.fold(0, (sum, t) => sum + t.amount);
@@ -130,32 +146,42 @@ final spendingTrendProvider = Provider<SpendingTrend>((ref) {
 
   return transactionsState.maybeWhen(
     data: (transactions) {
-      final now = DateTime.now();
-      // Calculate for the last 7 days for simplicity
-      List<double> expenseTotals = List.filled(7, 0.0);
-      List<double> incomeTotals = List.filled(7, 0.0);
+      final selectedMonth = ref.watch(selectedMonthProvider);
+      
+      // Calculate for the entire selected month
+      final daysInMonth = DateTime(selectedMonth.year, selectedMonth.month + 1, 0).day;
+      List<double> expenseTotals = List.filled(daysInMonth, 0.0);
+      List<double> incomeTotals = List.filled(daysInMonth, 0.0);
       
       double totalExpense = 0;
       double totalIncome = 0;
 
       for (var t in transactions) {
-        final diff = now.difference(t.date).inDays;
-        if (diff >= 0 && diff < 7) {
-          if (t.type == TransactionType.expense) {
-            totalExpense += t.amount;
-            expenseTotals[6 - diff] += t.amount;
-          } else if (t.type == TransactionType.income) {
-            totalIncome += t.amount;
-            incomeTotals[6 - diff] += t.amount;
+        if (t.date.year == selectedMonth.year && t.date.month == selectedMonth.month) {
+          int dayIndex = t.date.day - 1; // 0-indexed
+          if (dayIndex >= 0 && dayIndex < daysInMonth) {
+            if (t.type == TransactionType.expense) {
+              totalExpense += t.amount;
+              expenseTotals[dayIndex] += t.amount;
+            } else if (t.type == TransactionType.income) {
+              totalIncome += t.amount;
+              incomeTotals[dayIndex] += t.amount;
+            }
           }
         }
+      }
+
+      final now = DateTime.now();
+      int daysToDivide = daysInMonth;
+      if (selectedMonth.year == now.year && selectedMonth.month == now.month) {
+        daysToDivide = now.day;
       }
 
       return SpendingTrend(
         dailyExpense: expenseTotals,
         dailyIncome: incomeTotals,
-        avgExpensePerDay: totalExpense > 0 ? totalExpense / 7 : 0,
-        avgIncomePerDay: totalIncome > 0 ? totalIncome / 7 : 0,
+        avgExpensePerDay: totalExpense > 0 ? totalExpense / daysToDivide : 0,
+        avgIncomePerDay: totalIncome > 0 ? totalIncome / daysToDivide : 0,
       );
     },
     orElse: () => SpendingTrend(
@@ -189,15 +215,15 @@ final monthComparisonProvider = Provider<MonthComparison>((ref) {
 
   return transactionsState.maybeWhen(
     data: (transactions) {
-      final now = DateTime.now();
-      final lastMonth = DateTime(now.year, now.month - 1);
+      final selectedMonth = ref.watch(selectedMonthProvider);
+      final lastMonth = DateTime(selectedMonth.year, selectedMonth.month - 1);
 
       double currentExpense = 0;
       double lastExpense = 0;
 
       for (var t in transactions) {
         if (t.type == TransactionType.expense) {
-          if (t.date.month == now.month && t.date.year == now.year) {
+          if (t.date.month == selectedMonth.month && t.date.year == selectedMonth.year) {
             currentExpense += t.amount;
           } else if (t.date.month == lastMonth.month && t.date.year == lastMonth.year) {
             lastExpense += t.amount;

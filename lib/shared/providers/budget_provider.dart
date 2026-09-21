@@ -6,6 +6,7 @@ import 'package:spendly/data/repositories/budget_repository.dart';
 import 'package:spendly/data/repositories/budget_repository_impl.dart';
 import 'package:spendly/shared/providers/transaction_provider.dart';
 import 'package:spendly/shared/providers/category_provider.dart';
+import 'package:spendly/shared/providers/dashboard_provider.dart';
 import 'package:spendly/domain/entities/category.dart';
 
 final budgetRepositoryProvider = Provider<BudgetRepository>((ref) {
@@ -15,26 +16,40 @@ final budgetRepositoryProvider = Provider<BudgetRepository>((ref) {
 class BudgetNotifier extends AsyncNotifier<List<Budget>> {
   @override
   FutureOr<List<Budget>> build() async {
-    final now = DateTime.now();
+    final selectedMonth = ref.watch(selectedMonthProvider);
     final repository = ref.read(budgetRepositoryProvider);
-    return repository.getBudgets(now.month, now.year);
+    return repository.getBudgets(selectedMonth.month, selectedMonth.year);
   }
 
   Future<void> setBudget(String categoryId, double amount) async {
-    state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
       final repository = ref.read(budgetRepositoryProvider);
-      final now = DateTime.now();
+      final selectedMonth = ref.read(selectedMonthProvider);
       final budget = Budget(
         id: const Uuid().v4(),
         categoryId: categoryId,
         amount: amount,
-        month: now.month,
-        year: now.year,
+        month: selectedMonth.month,
+        year: selectedMonth.year,
       );
       
       await repository.saveBudget(budget);
-      return repository.getBudgets(now.month, now.year);
+      return repository.getBudgets(selectedMonth.month, selectedMonth.year);
+    });
+  }
+  Future<void> removeBudget(String categoryId) async {
+    state = await AsyncValue.guard(() async {
+      final repository = ref.read(budgetRepositoryProvider);
+      final selectedMonth = ref.read(selectedMonthProvider);
+      
+      final currentBudgets = state.value ?? [];
+      final targetBudget = currentBudgets.where((b) => b.categoryId == categoryId).firstOrNull;
+      
+      if (targetBudget != null) {
+        await repository.deleteBudget(targetBudget.id);
+      }
+      
+      return repository.getBudgets(selectedMonth.month, selectedMonth.year);
     });
   }
 }
@@ -77,12 +92,12 @@ final budgetProgressProvider = Provider<AsyncValue<List<CategoryBudgetProgress>>
   final budgets = budgetsState.value ?? [];
   final transactions = transactionsState.value ?? [];
 
-  final now = DateTime.now();
+  final selectedMonth = ref.watch(selectedMonthProvider);
   
   // Calculate spending per category for current month
   final Map<String, double> spendingPerCategory = {};
   for (var t in transactions) {
-    if (t.date.month == now.month && t.date.year == now.year && t.type.name == 'expense') {
+    if (t.date.month == selectedMonth.month && t.date.year == selectedMonth.year && t.type.name == 'expense') {
       spendingPerCategory[t.categoryId] = (spendingPerCategory[t.categoryId] ?? 0) + t.amount;
     }
   }

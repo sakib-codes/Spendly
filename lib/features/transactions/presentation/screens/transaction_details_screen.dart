@@ -89,7 +89,6 @@ class TransactionDetailsScreen extends ConsumerWidget {
 
   Widget _buildContent(BuildContext context, WidgetRef ref, Transaction transaction, Category? category) {
     final theme = Theme.of(context);
-    final formatCurrency = NumberFormat.simpleCurrency(name: 'BDT', decimalDigits: 2);
     final formatDate = DateFormat('MMMM d, yyyy');
     
     final isExpense = transaction.type == TransactionType.expense;

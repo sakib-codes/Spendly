@@ -7,6 +7,7 @@ import 'package:spendly/shared/providers/dashboard_provider.dart';
 import 'package:spendly/shared/providers/budget_provider.dart';
 import 'package:spendly/shared/providers/category_provider.dart';
 import 'package:spendly/shared/utils/currency_formatter.dart';
+import 'package:spendly/shared/widgets/zoomable_line_chart.dart';
 import 'package:intl/intl.dart';
 
 class AnalyticsScreen extends ConsumerWidget {
@@ -22,44 +23,44 @@ class AnalyticsScreen extends ConsumerWidget {
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-                child: _buildHeader(context),
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Analytics', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
+                ),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Container(
+                child: GlassCard(
+                  padding: EdgeInsets.zero,
                   height: 48,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.04), // Subtle track color
-                    borderRadius: BorderRadius.circular(24),
-                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(4.0),
                     child: TabBar(
                       indicatorSize: TabBarIndicatorSize.tab,
                       dividerColor: Colors.transparent,
                       indicator: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surface, // Selected tab color
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1), // Selected tab color
                         borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(color: Theme.of(context).shadowColor.withValues(alpha: 0.08), blurRadius: 4, offset: const Offset(0, 2))
-                        ],
                       ),
-                      labelColor: Theme.of(context).colorScheme.onSurface,
+                      labelColor: Theme.of(context).colorScheme.primary,
                       unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
-                    labelStyle: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                    unselectedLabelStyle: Theme.of(context).textTheme.titleMedium,
-                    tabs: const [
-                      Tab(text: 'Overview'),
-                      Tab(text: 'Budgets'),
-                    ],
+                      labelStyle: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                      unselectedLabelStyle: Theme.of(context).textTheme.titleMedium,
+                      tabs: const [
+                        Tab(text: 'Overview'),
+                        Tab(text: 'Budgets'),
+                      ],
+                    ),
                   ),
                 ),
-                ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
+              _buildMonthSwitcher(context, ref),
+              const SizedBox(height: 8),
               Expanded(
                 child: TabBarView(
+                  physics: const NeverScrollableScrollPhysics(), // Disable swiping to allow chart gestures
                   children: [
                     _buildOverviewTab(context, ref),
                     _buildBudgetsTab(context, ref),
@@ -82,48 +83,43 @@ class AnalyticsScreen extends ConsumerWidget {
       children: [
         _buildAvgRow(context, dashboardStats.totalIncome, dashboardStats.totalExpense),
         const SizedBox(height: 32),
-        _buildSpendingTrend(context, spendingTrend),
+        _buildSpendingTrend(context, spendingTrend, ref.watch(selectedMonthProvider)),
         const SizedBox(height: 24),
         _buildComparisonCard(context, monthComparison),
       ],
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildMonthSwitcher(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final now = DateTime.now();
-    final currentMonthYear = DateFormat('MMMM yyyy').format(now);
+    final selectedMonth = ref.watch(selectedMonthProvider);
+    final currentMonthYear = DateFormat('MMMM').format(selectedMonth);
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: Text(
-            'Analytics', 
-            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          IconButton(
+            icon: Icon(Icons.chevron_left_rounded, color: theme.colorScheme.onSurfaceVariant),
+            onPressed: () => ref.read(selectedMonthProvider.notifier).setMonth(DateTime(selectedMonth.year, selectedMonth.month - 1)),
           ),
-        ),
-        const SizedBox(width: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: theme.colorScheme.onSurface.withValues(alpha: 0.1)),
+          const SizedBox(width: 16),
+          Text(
+            currentMonthYear.toUpperCase(), 
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: theme.colorScheme.onSurface,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
+            )
           ),
-          child: Row(
-            children: [
-              Icon(Icons.chevron_left_rounded, size: 20, color: theme.colorScheme.onSurface),
-              const SizedBox(width: 8),
-              Text(currentMonthYear, style: theme.textTheme.labelMedium),
-              const SizedBox(width: 8),
-              Icon(Icons.chevron_right_rounded, size: 20, color: theme.colorScheme.onSurface),
-            ],
+          const SizedBox(width: 16),
+          IconButton(
+            icon: Icon(Icons.chevron_right_rounded, color: theme.colorScheme.onSurfaceVariant),
+            onPressed: () => ref.read(selectedMonthProvider.notifier).setMonth(DateTime(selectedMonth.year, selectedMonth.month + 1)),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -134,15 +130,31 @@ class AnalyticsScreen extends ConsumerWidget {
     return progressState.when(
       data: (progressList) {
         if (progressList.isEmpty) {
-          final cats = ref.read(categoryProvider).value ?? [];
-          final types = cats.map((c) => c.type.toString().split('.').last).take(5).join(', ');
-          return Center(child: Text('Debug - Cats: ${cats.length}, Types: $types'));
+          return Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const SizedBox(height: 64),
+              Icon(Icons.account_balance_wallet_outlined, size: 64, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5)),
+              const SizedBox(height: 16),
+              Text(
+                'No budgets set yet',
+                style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Tap "Set Budget" below to start tracking',
+                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              ),
+            ],
+          );
         }
+        final sortedList = List.of(progressList)..sort((a, b) => b.percentage.compareTo(a.percentage));
+
         return ListView.builder(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 130),
-          itemCount: progressList.length,
+          itemCount: sortedList.length,
           itemBuilder: (context, index) {
-            final progress = progressList[index];
+            final progress = sortedList[index];
             return Padding(
               padding: const EdgeInsets.only(bottom: 16.0),
               child: _buildBudgetCard(context, progress, ref),
@@ -173,10 +185,12 @@ class AnalyticsScreen extends ConsumerWidget {
                 onPressed: () => _showSetBudgetSheet(context, ref, progress),
                 style: TextButton.styleFrom(
                   minimumSize: Size.zero,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  backgroundColor: theme.colorScheme.surface,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.06), // Subtle highlight color
+                  foregroundColor: theme.colorScheme.onSurface,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 ),
-                child: Text(isSet ? 'Edit' : 'Set Budget', style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.primary)),
+                child: Text(isSet ? 'Edit' : 'Set Budget', style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold)),
               ),
             ],
           ),
@@ -225,6 +239,7 @@ class AnalyticsScreen extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useRootNavigator: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
         return Container(
@@ -263,8 +278,10 @@ class AnalyticsScreen extends ConsumerWidget {
                     final amount = double.tryParse(controller.text) ?? 0.0;
                     if (amount > 0) {
                       ref.read(budgetProvider.notifier).setBudget(progress.categoryId, amount);
-                      Navigator.pop(context);
+                    } else {
+                      ref.read(budgetProvider.notifier).removeBudget(progress.categoryId);
                     }
+                    Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: theme.colorScheme.primary,
@@ -309,7 +326,7 @@ class AnalyticsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSpendingTrend(BuildContext context, SpendingTrend trend) {
+  Widget _buildSpendingTrend(BuildContext context, SpendingTrend trend, DateTime selectedMonth) {
     final theme = Theme.of(context);
     final expenseColor = AppColors.expenseAccent;
     final incomeColor = AppColors.incomeAccent;
@@ -330,11 +347,10 @@ class AnalyticsScreen extends ConsumerWidget {
       incomeSpots.add(FlSpot(i.toDouble(), trend.dailyIncome[i]));
     }
     
-    final now = DateTime.now();
     final dateFormat = DateFormat('MMM d');
     List<String> labels = [];
-    for (int i = 0; i < 7; i++) {
-      labels.add(dateFormat.format(now.subtract(Duration(days: 6 - i))));
+    for (int i = 0; i < trend.dailyExpense.length; i++) {
+      labels.add(dateFormat.format(DateTime(selectedMonth.year, selectedMonth.month, i + 1)));
     }
 
     return Column(
@@ -352,7 +368,7 @@ class AnalyticsScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Text('Last 7 Days', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+            Text(DateFormat('MMMM').format(selectedMonth), style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
           ],
         ),
         const SizedBox(height: 8),
@@ -369,77 +385,23 @@ class AnalyticsScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 16),
         GlassCard(
-          padding: const EdgeInsets.only(top: 24, bottom: 16, left: 16, right: 16),
+          padding: const EdgeInsets.only(top: 24, bottom: 24, left: 16, right: 24),
           child: SizedBox(
-            height: 160,
-            child: LineChart(
-              LineChartData(
-                minY: 0,
-                maxY: maxTotal * 1.2,
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  horizontalInterval: maxTotal > 0 ? maxTotal / 3 : 1,
-                  getDrawingHorizontalLine: (value) {
-                    return FlLine(color: theme.colorScheme.onSurface.withValues(alpha: 0.1), strokeWidth: 1);
-                  },
-                ),
-                titlesData: FlTitlesData(
-                  show: true,
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 22,
-                      interval: 1,
-                      getTitlesWidget: (value, meta) {
-                        if (value.toInt() >= 0 && value.toInt() < labels.length) {
-                          return Text(labels[value.toInt()], style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant, fontSize: 10));
-                        }
-                        return const Text('');
-                      },
-                    ),
-                  ),
-                ),
-                borderData: FlBorderData(show: false),
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: incomeSpots,
-                    isCurved: true,
-                    color: incomeColor,
-                    barWidth: 3,
-                    isStrokeCapRound: true,
-                    dotData: FlDotData(show: true, getDotPainter: (spot, percent, barData, index) {
-                      return FlDotCirclePainter(radius: 4, color: incomeColor, strokeWidth: 2, strokeColor: theme.colorScheme.surface);
-                    }),
-                    belowBarData: BarAreaData(
-                      show: true, 
-                      color: incomeColor.withValues(alpha: 0.1),
-                    ),
-                  ),
-                  LineChartBarData(
-                    spots: expenseSpots,
-                    isCurved: true,
-                    color: expenseColor,
-                    barWidth: 3,
-                    isStrokeCapRound: true,
-                    dotData: FlDotData(show: true, getDotPainter: (spot, percent, barData, index) {
-                      return FlDotCirclePainter(radius: 4, color: expenseColor, strokeWidth: 2, strokeColor: theme.colorScheme.surface);
-                    }),
-                    belowBarData: BarAreaData(
-                      show: true, 
-                      color: expenseColor.withValues(alpha: 0.1),
-                    ),
-                  ),
-                ],
-              ),
+            height: 180,
+            child: ZoomableLineChart(
+              expenseSpots: expenseSpots,
+              incomeSpots: incomeSpots,
+              labels: labels,
+              minY: -(maxTotal * 0.05),
+              maxY: maxTotal * 1.2,
+              horizontalInterval: maxTotal > 0 ? maxTotal / 3 : 1,
+              incomeColor: incomeColor,
+              expenseColor: expenseColor,
             ),
           ),
-        ),
-      ],
-    );
+      ),
+    ],
+  );
   }
 
   Widget _buildComparisonCard(BuildContext context, MonthComparison comparison) {

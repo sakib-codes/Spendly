@@ -7,8 +7,12 @@ class AppTheme {
     scaffoldBackgroundColor: AppColors.lightBackgroundPrimary,
     colorScheme: const ColorScheme.light(
       primary: AppColors.lightTextPrimary,
+      onPrimary: AppColors.lightBackgroundPrimary,
       secondary: AppColors.lightTextSecondary,
       surface: AppColors.lightSurfacePrimary,
+      surfaceContainer: AppColors.lightSurfaceGlass,
+      onSurface: AppColors.lightTextPrimary,
+      onSurfaceVariant: AppColors.lightTextSecondary,
       error: AppColors.expenseAccent,
     ),
     snackBarTheme: const SnackBarThemeData(
@@ -26,8 +30,12 @@ class AppTheme {
     scaffoldBackgroundColor: AppColors.darkBackgroundPrimary,
     colorScheme: const ColorScheme.dark(
       primary: AppColors.darkTextPrimary,
+      onPrimary: AppColors.darkBackgroundPrimary,
       secondary: AppColors.darkTextSecondary,
       surface: AppColors.darkSurfacePrimary,
+      surfaceContainer: AppColors.darkSurfaceGlass,
+      onSurface: AppColors.darkTextPrimary,
+      onSurfaceVariant: AppColors.darkTextSecondary,
       error: AppColors.expenseAccent,
     ),
     snackBarTheme: const SnackBarThemeData(

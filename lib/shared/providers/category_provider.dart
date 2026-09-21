@@ -11,7 +11,6 @@ class CategoryNotifier extends AsyncNotifier<List<Category>> {
   }
 
   Future<void> addCategory(Category category) async {
-    state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
       final repository = ref.read(categoryRepositoryProvider);
       await repository.addCategory(category);
@@ -20,7 +19,6 @@ class CategoryNotifier extends AsyncNotifier<List<Category>> {
   }
 
   Future<void> deleteCategory(String id) async {
-    state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
       final repository = ref.read(categoryRepositoryProvider);
       await repository.deleteCategory(id);
