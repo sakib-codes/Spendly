@@ -3,12 +3,20 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import firebase_admin
 from firebase_admin import auth, credentials
 
+import os
+from firebase_admin import credentials
+
 # Initialize Firebase app if not already initialized
 try:
     firebase_admin.get_app()
 except ValueError:
-    # Providing the projectId allows verify_id_token to work without a full service account JSON
-    firebase_admin.initialize_app(options={'projectId': 'spendly360'})
+    cred_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
+    if cred_path and os.path.exists(cred_path):
+        cred = credentials.Certificate(cred_path)
+        firebase_admin.initialize_app(cred)
+    else:
+        # Fallback to default or project ID
+        firebase_admin.initialize_app(options={'projectId': 'spendly360'})
 
 security = HTTPBearer()
 
