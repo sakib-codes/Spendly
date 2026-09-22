@@ -7,8 +7,8 @@ import 'package:spendly/core/database/database_tables.dart';
 import 'package:sqflite/sqflite.dart';
 
 class SyncService {
-  // Local testing URL for Android emulator
-  static const String baseUrl = 'http://10.0.2.2:8000/sync';
+  // Live Render backend URL
+  static const String baseUrl = 'https://spendly-p4hk.onrender.com/sync';
 
   Future<void> push() async {
     final user = FirebaseAuth.instance.currentUser;
