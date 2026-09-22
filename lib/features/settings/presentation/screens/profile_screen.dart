@@ -276,7 +276,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'v1.4.2',
+                          'v1.0.0',
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(
                                 color: Theme.of(context)
@@ -309,7 +309,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                   MaterialPageRoute(
                                     builder: (context) => CustomLicensePage(
                                       applicationName: 'Spendly',
-                                      applicationVersion: '1.4.2',
+                                      applicationVersion: '1.0.0',
                                       applicationIcon: ClipRRect(
                                         borderRadius: BorderRadius.circular(16),
                                         child: Image.asset(
@@ -349,7 +349,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               _buildSettingItem(
                 context,
                 'App Version',
-                'v1.4.2',
+                'v1.0.0',
                 onTap: () {
                   GlassToast.show(
                     context: context,
