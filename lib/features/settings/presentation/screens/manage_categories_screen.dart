@@ -672,6 +672,7 @@ class _AddCategorySheetState extends ConsumerState<_AddCategorySheet> {
                   icon: _selectedIconKey,
                   type: _selectedType,
                   createdAt: DateTime.now(),
+                  updatedAt: DateTime.now(),
                 );
 
                 ref.read(categoryProvider.notifier).addCategory(newCategory);

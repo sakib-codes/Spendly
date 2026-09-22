@@ -13,6 +13,8 @@ class TransactionModel extends Transaction {
     super.note,
     required super.createdAt,
     required super.updatedAt,
+    super.isSynced = false,
+    super.deletedAt,
   });
 
   factory TransactionModel.fromMap(Map<String, dynamic> map) {
@@ -35,6 +37,11 @@ class TransactionModel extends Transaction {
       updatedAt: DateTime.fromMillisecondsSinceEpoch(
         map[TransactionFields.updatedAt] as int,
       ),
+      isSynced: (map[TransactionFields.isSynced] as int?) == 1,
+      deletedAt: map[TransactionFields.deletedAt] != null
+          ? DateTime.fromMillisecondsSinceEpoch(
+              map[TransactionFields.deletedAt] as int)
+          : null,
     );
   }
 
@@ -52,6 +59,8 @@ class TransactionModel extends Transaction {
       TransactionFields.note: note,
       TransactionFields.createdAt: createdAt.millisecondsSinceEpoch,
       TransactionFields.updatedAt: updatedAt.millisecondsSinceEpoch,
+      TransactionFields.isSynced: isSynced ? 1 : 0,
+      TransactionFields.deletedAt: deletedAt?.millisecondsSinceEpoch,
     };
   }
 }

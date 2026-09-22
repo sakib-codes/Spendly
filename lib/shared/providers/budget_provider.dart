@@ -33,6 +33,7 @@ class BudgetNotifier extends AsyncNotifier<List<Budget>> {
         amount: amount,
         month: selectedMonth.month,
         year: selectedMonth.year,
+        updatedAt: DateTime.now(),
       );
 
       await repository.saveBudget(budget);

@@ -8,6 +8,9 @@ class CategoryModel extends Category {
     required super.icon,
     required super.type,
     required super.createdAt,
+    required super.updatedAt,
+    super.isSynced = false,
+    super.deletedAt,
   });
 
   factory CategoryModel.fromMap(Map<String, dynamic> map) {
@@ -25,6 +28,14 @@ class CategoryModel extends Category {
       createdAt: DateTime.fromMillisecondsSinceEpoch(
         map[CategoryFields.createdAt] as int,
       ),
+      updatedAt: DateTime.fromMillisecondsSinceEpoch(
+        map[CategoryFields.updatedAt] as int? ?? map[CategoryFields.createdAt] as int,
+      ),
+      isSynced: (map[CategoryFields.isSynced] as int?) == 1,
+      deletedAt: map[CategoryFields.deletedAt] != null
+          ? DateTime.fromMillisecondsSinceEpoch(
+              map[CategoryFields.deletedAt] as int)
+          : null,
     );
   }
 
@@ -39,6 +50,9 @@ class CategoryModel extends Category {
       CategoryFields.icon: icon,
       CategoryFields.type: typeStr,
       CategoryFields.createdAt: createdAt.millisecondsSinceEpoch,
+      CategoryFields.updatedAt: updatedAt.millisecondsSinceEpoch,
+      CategoryFields.isSynced: isSynced ? 1 : 0,
+      CategoryFields.deletedAt: deletedAt?.millisecondsSinceEpoch,
     };
   }
 }
