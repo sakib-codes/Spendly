@@ -23,7 +23,19 @@ def read_root():
 
 @app.get("/health")
 def health_check():
-    return {"status": "healthy"}
+    return {"status": "ok"}
+
+@app.get("/debug-env")
+def debug_env():
+    import os
+    secrets_dir = "/etc/secrets"
+    secrets_files = os.listdir(secrets_dir) if os.path.exists(secrets_dir) else []
+    
+    return {
+        "GOOGLE_APPLICATION_CREDENTIALS": os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"),
+        "secrets_dir_exists": os.path.exists(secrets_dir),
+        "secrets_files": secrets_files
+    }
 
 @app.post("/users/", response_model=User)
 def create_user(user: User, session: Session = Depends(get_session)):
