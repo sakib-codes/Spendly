@@ -16,6 +16,8 @@ class TransactionFields {
   static const String note = 'note';
   static const String createdAt = 'createdAt';
   static const String updatedAt = 'updatedAt';
+  static const String isSynced = 'isSynced';
+  static const String deletedAt = 'deletedAt';
 }
 
 class CategoryFields {
@@ -24,6 +26,9 @@ class CategoryFields {
   static const String icon = 'icon';
   static const String type = 'type'; // 'expense', 'income', or 'both'
   static const String createdAt = 'createdAt';
+  static const String updatedAt = 'updatedAt';
+  static const String isSynced = 'isSynced';
+  static const String deletedAt = 'deletedAt';
 }
 
 class SettingsFields {
@@ -39,4 +44,7 @@ class BudgetFields {
   static const String amount = 'amount';
   static const String month = 'month';
   static const String year = 'year';
+  static const String updatedAt = 'updatedAt';
+  static const String isSynced = 'isSynced';
+  static const String deletedAt = 'deletedAt';
 }

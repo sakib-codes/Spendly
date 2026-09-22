@@ -6,6 +6,9 @@ class Budget extends Equatable {
   final double amount;
   final int month;
   final int year;
+  final DateTime updatedAt;
+  final bool isSynced;
+  final DateTime? deletedAt;
 
   const Budget({
     required this.id,
@@ -13,6 +16,9 @@ class Budget extends Equatable {
     required this.amount,
     required this.month,
     required this.year,
+    required this.updatedAt,
+    this.isSynced = false,
+    this.deletedAt,
   });
 
   Budget copyWith({
@@ -21,6 +27,9 @@ class Budget extends Equatable {
     double? amount,
     int? month,
     int? year,
+    DateTime? updatedAt,
+    bool? isSynced,
+    DateTime? deletedAt,
   }) {
     return Budget(
       id: id ?? this.id,
@@ -28,9 +37,21 @@ class Budget extends Equatable {
       amount: amount ?? this.amount,
       month: month ?? this.month,
       year: year ?? this.year,
+      updatedAt: updatedAt ?? this.updatedAt,
+      isSynced: isSynced ?? this.isSynced,
+      deletedAt: deletedAt ?? this.deletedAt,
     );
   }
 
   @override
-  List<Object?> get props => [id, categoryId, amount, month, year];
+  List<Object?> get props => [
+        id,
+        categoryId,
+        amount,
+        month,
+        year,
+        updatedAt,
+        isSynced,
+        deletedAt,
+      ];
 }

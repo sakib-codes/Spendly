@@ -14,6 +14,9 @@ def on_startup():
     # Automatically create the tables in Neon if they don't exist
     SQLModel.metadata.create_all(engine)
 
+from sync import router as sync_router
+app.include_router(sync_router)
+
 @app.get("/")
 def read_root():
     return {"message": "Hello from the Spendly API!"}
@@ -33,3 +36,9 @@ def create_user(user: User, session: Session = Depends(get_session)):
 def get_users(session: Session = Depends(get_session)):
     users = session.exec(select(User)).all()
     return users
+
+from auth import verify_token
+
+@app.get("/auth-test")
+def auth_test(token_data: dict = Depends(verify_token)):
+    return {"message": "You are authenticated!", "uid": token_data.get("uid")}

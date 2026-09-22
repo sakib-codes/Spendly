@@ -12,7 +12,10 @@ class DatabaseMigrations {
         ${CategoryFields.name} TEXT NOT NULL,
         ${CategoryFields.icon} TEXT NOT NULL,
         ${CategoryFields.type} TEXT NOT NULL,
-        ${CategoryFields.createdAt} INTEGER NOT NULL
+        ${CategoryFields.createdAt} INTEGER NOT NULL,
+        ${CategoryFields.updatedAt} INTEGER NOT NULL,
+        ${CategoryFields.isSynced} INTEGER NOT NULL DEFAULT 0,
+        ${CategoryFields.deletedAt} INTEGER
       )
     ''');
 
@@ -29,6 +32,8 @@ class DatabaseMigrations {
         ${TransactionFields.note} TEXT,
         ${TransactionFields.createdAt} INTEGER NOT NULL,
         ${TransactionFields.updatedAt} INTEGER NOT NULL,
+        ${TransactionFields.isSynced} INTEGER NOT NULL DEFAULT 0,
+        ${TransactionFields.deletedAt} INTEGER,
         FOREIGN KEY (${TransactionFields.categoryId}) REFERENCES ${DatabaseTables.categories} (${CategoryFields.id}) ON DELETE CASCADE
       )
     ''');
@@ -51,6 +56,9 @@ class DatabaseMigrations {
         ${BudgetFields.amount} REAL NOT NULL,
         ${BudgetFields.month} INTEGER NOT NULL,
         ${BudgetFields.year} INTEGER NOT NULL,
+        ${BudgetFields.updatedAt} INTEGER NOT NULL,
+        ${BudgetFields.isSynced} INTEGER NOT NULL DEFAULT 0,
+        ${BudgetFields.deletedAt} INTEGER,
         FOREIGN KEY (${BudgetFields.categoryId}) REFERENCES ${DatabaseTables.categories} (${CategoryFields.id}) ON DELETE CASCADE
       )
     ''');
@@ -154,6 +162,22 @@ class DatabaseMigrations {
           whereArgs: [entry.key],
         );
       }
+    }
+
+    if (oldVersion < 4) {
+      // Add sync columns to Categories
+      await db.execute('ALTER TABLE ${DatabaseTables.categories} ADD COLUMN ${CategoryFields.updatedAt} INTEGER NOT NULL DEFAULT 0');
+      await db.execute('ALTER TABLE ${DatabaseTables.categories} ADD COLUMN ${CategoryFields.isSynced} INTEGER NOT NULL DEFAULT 0');
+      await db.execute('ALTER TABLE ${DatabaseTables.categories} ADD COLUMN ${CategoryFields.deletedAt} INTEGER');
+
+      // Add sync columns to Transactions
+      await db.execute('ALTER TABLE ${DatabaseTables.transactions} ADD COLUMN ${TransactionFields.isSynced} INTEGER NOT NULL DEFAULT 0');
+      await db.execute('ALTER TABLE ${DatabaseTables.transactions} ADD COLUMN ${TransactionFields.deletedAt} INTEGER');
+
+      // Add sync columns to Budgets
+      await db.execute('ALTER TABLE ${DatabaseTables.budgets} ADD COLUMN ${BudgetFields.updatedAt} INTEGER NOT NULL DEFAULT 0');
+      await db.execute('ALTER TABLE ${DatabaseTables.budgets} ADD COLUMN ${BudgetFields.isSynced} INTEGER NOT NULL DEFAULT 0');
+      await db.execute('ALTER TABLE ${DatabaseTables.budgets} ADD COLUMN ${BudgetFields.deletedAt} INTEGER');
     }
   }
 }

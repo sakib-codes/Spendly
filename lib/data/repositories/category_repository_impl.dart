@@ -3,6 +3,8 @@ import 'package:spendly/core/database/database_tables.dart';
 import 'package:spendly/data/models/category_model.dart';
 import 'package:spendly/domain/entities/category.dart';
 
+import 'package:spendly/features/sync/services/sync_service.dart';
+
 import 'category_repository.dart';
 
 class CategoryRepositoryImpl implements CategoryRepository {
@@ -37,8 +39,11 @@ class CategoryRepositoryImpl implements CategoryRepository {
       icon: category.icon,
       type: category.type,
       createdAt: category.createdAt,
+      updatedAt: category.updatedAt,
+      isSynced: false,
     );
     await db.insert(DatabaseTables.categories, model.toMap());
+    SyncService().push();
   }
 
   @override
@@ -50,6 +55,8 @@ class CategoryRepositoryImpl implements CategoryRepository {
       icon: category.icon,
       type: category.type,
       createdAt: category.createdAt,
+      updatedAt: category.updatedAt,
+      isSynced: false,
     );
     await db.update(
       DatabaseTables.categories,
@@ -57,15 +64,36 @@ class CategoryRepositoryImpl implements CategoryRepository {
       where: '${CategoryFields.id} = ?',
       whereArgs: [category.id],
     );
+    SyncService().push();
   }
 
   @override
   Future<void> deleteCategory(String id) async {
     final db = await AppDatabase.instance;
-    await db.delete(
+    
+    final existing = await db.query(
       DatabaseTables.categories,
       where: '${CategoryFields.id} = ?',
       whereArgs: [id],
     );
+    
+    if (existing.isNotEmpty && (existing.first[CategoryFields.isSynced] as int?) == 1) {
+      await db.update(
+        DatabaseTables.categories,
+        {
+           CategoryFields.deletedAt: DateTime.now().millisecondsSinceEpoch,
+           CategoryFields.isSynced: 0,
+        },
+        where: '${CategoryFields.id} = ?',
+        whereArgs: [id],
+      );
+    } else {
+      await db.delete(
+        DatabaseTables.categories,
+        where: '${CategoryFields.id} = ?',
+        whereArgs: [id],
+      );
+    }
+    SyncService().push();
   }
 }

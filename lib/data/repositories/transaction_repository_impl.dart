@@ -3,6 +3,8 @@ import 'package:spendly/core/database/database_tables.dart';
 import 'package:spendly/data/models/transaction_model.dart';
 import 'package:spendly/domain/entities/transaction.dart';
 
+import 'package:spendly/features/sync/services/sync_service.dart';
+
 import 'transaction_repository.dart';
 
 class TransactionRepositoryImpl implements TransactionRepository {
@@ -45,8 +47,10 @@ class TransactionRepositoryImpl implements TransactionRepository {
       note: transaction.note,
       createdAt: transaction.createdAt,
       updatedAt: transaction.updatedAt,
+      isSynced: false,
     );
     await db.insert(DatabaseTables.transactions, model.toMap());
+    SyncService().push();
   }
 
   @override
@@ -63,6 +67,7 @@ class TransactionRepositoryImpl implements TransactionRepository {
       note: transaction.note,
       createdAt: transaction.createdAt,
       updatedAt: transaction.updatedAt,
+      isSynced: false,
     );
     await db.update(
       DatabaseTables.transactions,
@@ -70,16 +75,39 @@ class TransactionRepositoryImpl implements TransactionRepository {
       where: '${TransactionFields.id} = ?',
       whereArgs: [transaction.id],
     );
+    SyncService().push();
   }
 
   @override
   Future<void> deleteTransaction(String id) async {
     final db = await AppDatabase.instance;
-    await db.delete(
+    
+    // Instead of actual delete, we mark it as deleted for offline sync
+    // If it was never synced, we can hard delete it.
+    final existing = await db.query(
       DatabaseTables.transactions,
       where: '${TransactionFields.id} = ?',
       whereArgs: [id],
     );
+    
+    if (existing.isNotEmpty && (existing.first[TransactionFields.isSynced] as int?) == 1) {
+      await db.update(
+        DatabaseTables.transactions,
+        {
+           TransactionFields.deletedAt: DateTime.now().millisecondsSinceEpoch,
+           TransactionFields.isSynced: 0,
+        },
+        where: '${TransactionFields.id} = ?',
+        whereArgs: [id],
+      );
+    } else {
+      await db.delete(
+        DatabaseTables.transactions,
+        where: '${TransactionFields.id} = ?',
+        whereArgs: [id],
+      );
+    }
+    SyncService().push();
   }
 
   @override

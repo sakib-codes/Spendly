@@ -13,6 +13,8 @@ class Transaction extends Equatable {
   final String? note;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final bool isSynced;
+  final DateTime? deletedAt;
 
   const Transaction({
     required this.id,
@@ -25,6 +27,8 @@ class Transaction extends Equatable {
     this.note,
     required this.createdAt,
     required this.updatedAt,
+    this.isSynced = false,
+    this.deletedAt,
   });
 
   @override
@@ -39,5 +43,7 @@ class Transaction extends Equatable {
     note,
     createdAt,
     updatedAt,
+    isSynced,
+    deletedAt,
   ];
 }

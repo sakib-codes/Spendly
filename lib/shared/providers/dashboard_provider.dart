@@ -127,6 +127,7 @@ final spendingBreakdownProvider = Provider<List<CategorySpending>>((ref) {
                 icon: '',
                 type: CategoryType.expense,
                 createdAt: DateTime.now(),
+                updatedAt: DateTime.now(),
               ),
             );
 
