@@ -8,7 +8,7 @@ import 'package:sqflite/sqflite.dart';
 
 class SyncService {
   // Live Render backend URL
-  static const String baseUrl = 'https://spendly-p4hk.onrender.com/sync';
+  static const String baseUrl = 'https://spendly-o4hk.onrender.com/sync';
 
   Future<void> push() async {
     final user = FirebaseAuth.instance.currentUser;

@@ -7,7 +7,8 @@ from firebase_admin import auth, credentials
 try:
     firebase_admin.get_app()
 except ValueError:
-    firebase_admin.initialize_app()
+    # Providing the projectId allows verify_id_token to work without a full service account JSON
+    firebase_admin.initialize_app(options={'projectId': 'spendly360'})
 
 security = HTTPBearer()
 

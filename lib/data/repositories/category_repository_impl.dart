@@ -11,7 +11,10 @@ class CategoryRepositoryImpl implements CategoryRepository {
   @override
   Future<List<Category>> getCategories() async {
     final db = await AppDatabase.instance;
-    final result = await db.query(DatabaseTables.categories);
+    final result = await db.query(
+      DatabaseTables.categories,
+      where: '${CategoryFields.deletedAt} IS NULL',
+    );
     return result.map((map) => CategoryModel.fromMap(map)).toList();
   }
 

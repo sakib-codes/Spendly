@@ -13,6 +13,7 @@ class TransactionRepositoryImpl implements TransactionRepository {
     final db = await AppDatabase.instance;
     final result = await db.query(
       DatabaseTables.transactions,
+      where: '${TransactionFields.deletedAt} IS NULL',
       orderBy: '${TransactionFields.date} DESC',
     );
     return result.map((map) => TransactionModel.fromMap(map)).toList();

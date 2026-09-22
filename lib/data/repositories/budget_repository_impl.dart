@@ -13,7 +13,7 @@ class BudgetRepositoryImpl implements BudgetRepository {
     final db = await AppDatabase.instance;
     final List<Map<String, dynamic>> maps = await db.query(
       DatabaseTables.budgets,
-      where: '${BudgetFields.month} = ? AND ${BudgetFields.year} = ?',
+      where: '${BudgetFields.month} = ? AND ${BudgetFields.year} = ? AND ${BudgetFields.deletedAt} IS NULL',
       whereArgs: [month, year],
     );
 
