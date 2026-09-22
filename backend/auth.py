@@ -10,7 +10,10 @@ from firebase_admin import credentials
 try:
     firebase_admin.get_app()
 except ValueError:
-    cred_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
+    # 1. Check GOOGLE_APPLICATION_CREDENTIALS env var
+    # 2. Check /etc/secrets/firebase-credentials.json (Render Secret File)
+    cred_path = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS', '/etc/secrets/firebase-credentials.json')
+    
     if cred_path and os.path.exists(cred_path):
         cred = credentials.Certificate(cred_path)
         firebase_admin.initialize_app(cred)
