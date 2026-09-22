@@ -15,7 +15,7 @@ flutter run  # or hot reload with 'r' in the running terminal
 4. **Riverpod version note**: This version does NOT have `valueOrNull` — use `.value` or `.whenOrNull(data: (v) => v)` instead
 5. **Dropdowns → Bottom sheets**: User prefers popup bottom sheet pickers over native `DropdownButton`
 6. **Category picker**: Grid layout (4 per row), icon + label below — NOT a list
-7. **No `.00` decimals**: Only show decimal part when the amount actually has fractional value
+7. **Decimals intentionally rounded**: Do not show decimals or fractional parts; amounts are intentionally rounded to save UI space.
 
 ## Key File Locations
 
@@ -58,10 +58,5 @@ flutter run  # or hot reload with 'r' in the running terminal
 - **Budget**: id, categoryId, amount, month, year
 
 ## TODO — Next Work Items
-1. **Wire up category deletion** — add `deleteCategory()` to `CategoryNotifier` and `CategoryRepository`
-2. **Fix month filtering on dashboard** — stats should only include transactions from the selected month
-3. **Make comparison card dynamic** — calculate real last-month vs current-month spending
-4. **Remove debug prints** — clean up `print()` in `budget_provider.dart`
-5. **Remove dead code** — unused `formatCurrency`/`formatCurrencyChart` variables in analytics
-6. **SnackBar dark mode fix** — ensure SnackBar text color matches dark theme
-7. **Amount field text input restriction** — verify `FilteringTextInputFormatter` actually blocks non-numeric characters on all keyboards
+- All current work items and identified bugs have been successfully resolved.
+

@@ -8,6 +8,8 @@ class AdvancedWeatherCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Row(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -55,13 +57,13 @@ class AdvancedWeatherCard extends StatelessWidget {
         SizedBox(
           width: 70,
           height: 60,
-          child: _buildWeatherGraphic(weather.weatherCode),
+          child: _buildWeatherGraphic(weather.weatherCode, isDark),
         ),
       ],
     );
   }
 
-  Widget _buildWeatherGraphic(int code) {
+  Widget _buildWeatherGraphic(int code, bool isDark) {
     // Determine which components to show
     bool showSun = code == 0 || code == 1 || code == 2 || code == 3;
     bool showCloud = code >= 1;
@@ -98,34 +100,44 @@ class AdvancedWeatherCard extends StatelessWidget {
             ),
           ),
         if (showCloud)
-          Positioned(
-            bottom: 5,
-            left: -5,
-            child: _buildCloud(),
-          ),
+          Positioned(bottom: 5, left: -5, child: _buildCloud(isDark)),
         if (showRain)
-          Positioned(
-            bottom: -5,
-            right: 15,
-            child: _buildRainDrop(),
-          ),
+          Positioned(bottom: -5, right: 15, child: _buildRainDrop()),
         if (showLightning)
           Positioned(
             bottom: -5,
             right: 10,
-            child: const Icon(Icons.flash_on_rounded, color: Colors.amber, size: 24, shadows: [Shadow(color: Colors.orange, blurRadius: 8)]),
+            child: const Icon(
+              Icons.flash_on_rounded,
+              color: Colors.amber,
+              size: 24,
+              shadows: [Shadow(color: Colors.orange, blurRadius: 8)],
+            ),
           ),
         if (showSnow)
           Positioned(
             bottom: -5,
             right: 15,
-            child: const Icon(Icons.ac_unit_rounded, color: Colors.lightBlueAccent, size: 20, shadows: [Shadow(color: Colors.blue, blurRadius: 8)]),
+            child: const Icon(
+              Icons.ac_unit_rounded,
+              color: Colors.lightBlueAccent,
+              size: 20,
+              shadows: [Shadow(color: Colors.blue, blurRadius: 8)],
+            ),
           ),
       ],
     );
   }
 
-  Widget _buildCloud() {
+  Widget _buildCloud(bool isDark) {
+    final baseColor = isDark ? const Color(0xFF90A4AE) : Colors.white;
+    final darkShade = isDark
+        ? const Color(0xFF607D8B)
+        : const Color(0xFFCFD8DC);
+    final midShade = isDark ? const Color(0xFF78909C) : const Color(0xFFECEFF1);
+    final lightShade = isDark
+        ? const Color(0xFF546E7A)
+        : const Color(0xFFE0E0E0);
     return SizedBox(
       width: 65,
       height: 40,
@@ -140,14 +152,18 @@ class AdvancedWeatherCard extends StatelessWidget {
               height: 25,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(25),
-                gradient: const LinearGradient(
-                  colors: [Colors.white, Color(0xFFCFD8DC)],
+                gradient: LinearGradient(
+                  colors: [baseColor, darkShade],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                 ),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 10, offset: const Offset(0, 6))
-                ]
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.25),
+                    blurRadius: 10,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
               ),
             ),
           ),
@@ -158,11 +174,11 @@ class AdvancedWeatherCard extends StatelessWidget {
             child: Container(
               width: 25,
               height: 25,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
-                  colors: [Colors.white, Color(0xFFECEFF1)],
-                  center: Alignment(-0.5, -0.5),
+                  colors: [baseColor, midShade],
+                  center: const Alignment(-0.5, -0.5),
                 ),
               ),
             ),
@@ -174,11 +190,11 @@ class AdvancedWeatherCard extends StatelessWidget {
             child: Container(
               width: 32,
               height: 32,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
-                  colors: [Colors.white, Color(0xFFE0E0E0)],
-                  center: Alignment(-0.3, -0.3),
+                  colors: [baseColor, lightShade],
+                  center: const Alignment(-0.3, -0.3),
                 ),
               ),
             ),
@@ -201,8 +217,11 @@ class AdvancedWeatherCard extends StatelessWidget {
           topRight: Radius.circular(2),
         ),
         boxShadow: [
-          BoxShadow(color: Colors.lightBlueAccent.withValues(alpha: 0.5), blurRadius: 4)
-        ]
+          BoxShadow(
+            color: Colors.lightBlueAccent.withValues(alpha: 0.5),
+            blurRadius: 4,
+          ),
+        ],
       ),
     );
   }

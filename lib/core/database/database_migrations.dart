@@ -1,5 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
+
 import 'database_tables.dart';
 
 class DatabaseMigrations {
@@ -109,7 +110,11 @@ class DatabaseMigrations {
     }
   }
 
-  static Future<void> onUpgrade(Database db, int oldVersion, int newVersion) async {
+  static Future<void> onUpgrade(
+    Database db,
+    int oldVersion,
+    int newVersion,
+  ) async {
     if (oldVersion < 2) {
       await db.execute('''
         CREATE TABLE ${DatabaseTables.budgets} (
@@ -122,17 +127,25 @@ class DatabaseMigrations {
         )
       ''');
     }
-    
+
     if (oldVersion < 3) {
       // Update existing default categories to have proper icons
       final categoryUpdates = {
-        'Food': 'food', 'Transport': 'transport', 'Shopping': 'shopping',
-        'Bills': 'bills', 'Entertainment': 'entertainment', 'Health': 'health',
-        'Education': 'education', 'Salary': 'salary', 'Freelance': 'freelance',
-        'Business': 'business', 'Investment': 'investment', 'Gift': 'gift',
-        'Other': 'other'
+        'Food': 'food',
+        'Transport': 'transport',
+        'Shopping': 'shopping',
+        'Bills': 'bills',
+        'Entertainment': 'entertainment',
+        'Health': 'health',
+        'Education': 'education',
+        'Salary': 'salary',
+        'Freelance': 'freelance',
+        'Business': 'business',
+        'Investment': 'investment',
+        'Gift': 'gift',
+        'Other': 'other',
       };
-      
+
       for (var entry in categoryUpdates.entries) {
         await db.update(
           DatabaseTables.categories,

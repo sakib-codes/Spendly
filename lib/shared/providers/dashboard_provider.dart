@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../domain/entities/transaction.dart';
 import '../../domain/entities/category.dart';
 import 'transaction_provider.dart';
@@ -17,9 +18,11 @@ class SelectedMonthNotifier extends Notifier<DateTime> {
   }
 }
 
-final selectedMonthProvider = NotifierProvider<SelectedMonthNotifier, DateTime>(() {
-  return SelectedMonthNotifier();
-});
+final selectedMonthProvider = NotifierProvider<SelectedMonthNotifier, DateTime>(
+  () {
+    return SelectedMonthNotifier();
+  },
+);
 
 class DashboardStats {
   final double totalBalance;
@@ -43,7 +46,8 @@ final dashboardStatsProvider = Provider<DashboardStats>((ref) {
       final selectedMonth = ref.watch(selectedMonthProvider);
 
       for (var t in transactions) {
-        if (t.date.month == selectedMonth.month && t.date.year == selectedMonth.year) {
+        if (t.date.month == selectedMonth.month &&
+            t.date.year == selectedMonth.year) {
           if (t.type == TransactionType.income) {
             income += t.amount;
           } else {
@@ -58,7 +62,8 @@ final dashboardStatsProvider = Provider<DashboardStats>((ref) {
         totalExpense: expense,
       );
     },
-    orElse: () => DashboardStats(totalBalance: 0, totalIncome: 0, totalExpense: 0),
+    orElse: () =>
+        DashboardStats(totalBalance: 0, totalIncome: 0, totalExpense: 0),
   );
 });
 
@@ -80,14 +85,25 @@ final spendingBreakdownProvider = Provider<List<CategorySpending>>((ref) {
       return categoriesState.maybeWhen(
         data: (categories) {
           final selectedMonth = ref.watch(selectedMonthProvider);
-          final expenseTransactions = transactions.where((t) => t.type == TransactionType.expense && t.date.month == selectedMonth.month && t.date.year == selectedMonth.year).toList();
+          final expenseTransactions = transactions
+              .where(
+                (t) =>
+                    t.type == TransactionType.expense &&
+                    t.date.month == selectedMonth.month &&
+                    t.date.year == selectedMonth.year,
+              )
+              .toList();
           if (expenseTransactions.isEmpty) return [];
 
-          double totalExpense = expenseTransactions.fold(0, (sum, t) => sum + t.amount);
-          
+          double totalExpense = expenseTransactions.fold(
+            0,
+            (sum, t) => sum + t.amount,
+          );
+
           Map<String, double> categorySums = {};
           for (var t in expenseTransactions) {
-            categorySums[t.categoryId] = (categorySums[t.categoryId] ?? 0) + t.amount;
+            categorySums[t.categoryId] =
+                (categorySums[t.categoryId] ?? 0) + t.amount;
           }
 
           final List<Color> colors = [
@@ -104,16 +120,24 @@ final spendingBreakdownProvider = Provider<List<CategorySpending>>((ref) {
 
           categorySums.forEach((categoryId, amount) {
             final category = categories.cast<Category>().firstWhere(
-              (c) => c.id == categoryId, 
-              orElse: () => Category(id: '', name: 'Unknown', icon: '', type: CategoryType.expense, createdAt: DateTime.now())
+              (c) => c.id == categoryId,
+              orElse: () => Category(
+                id: '',
+                name: 'Unknown',
+                icon: '',
+                type: CategoryType.expense,
+                createdAt: DateTime.now(),
+              ),
             );
-            
-            breakdown.add(CategorySpending(
-              category.name,
-              amount,
-              (amount / totalExpense) * 100,
-              colors[colorIndex % colors.length],
-            ));
+
+            breakdown.add(
+              CategorySpending(
+                category.name,
+                amount,
+                (amount / totalExpense) * 100,
+                colors[colorIndex % colors.length],
+              ),
+            );
             colorIndex++;
           });
 
@@ -147,17 +171,22 @@ final spendingTrendProvider = Provider<SpendingTrend>((ref) {
   return transactionsState.maybeWhen(
     data: (transactions) {
       final selectedMonth = ref.watch(selectedMonthProvider);
-      
+
       // Calculate for the entire selected month
-      final daysInMonth = DateTime(selectedMonth.year, selectedMonth.month + 1, 0).day;
+      final daysInMonth = DateTime(
+        selectedMonth.year,
+        selectedMonth.month + 1,
+        0,
+      ).day;
       List<double> expenseTotals = List.filled(daysInMonth, 0.0);
       List<double> incomeTotals = List.filled(daysInMonth, 0.0);
-      
+
       double totalExpense = 0;
       double totalIncome = 0;
 
       for (var t in transactions) {
-        if (t.date.year == selectedMonth.year && t.date.month == selectedMonth.month) {
+        if (t.date.year == selectedMonth.year &&
+            t.date.month == selectedMonth.month) {
           int dayIndex = t.date.day - 1; // 0-indexed
           if (dayIndex >= 0 && dayIndex < daysInMonth) {
             if (t.type == TransactionType.expense) {
@@ -223,9 +252,11 @@ final monthComparisonProvider = Provider<MonthComparison>((ref) {
 
       for (var t in transactions) {
         if (t.type == TransactionType.expense) {
-          if (t.date.month == selectedMonth.month && t.date.year == selectedMonth.year) {
+          if (t.date.month == selectedMonth.month &&
+              t.date.year == selectedMonth.year) {
             currentExpense += t.amount;
-          } else if (t.date.month == lastMonth.month && t.date.year == lastMonth.year) {
+          } else if (t.date.month == lastMonth.month &&
+              t.date.year == lastMonth.year) {
             lastExpense += t.amount;
           }
         }
@@ -237,11 +268,29 @@ final monthComparisonProvider = Provider<MonthComparison>((ref) {
         lastMonthName: _monthName(lastMonth.month),
       );
     },
-    orElse: () => MonthComparison(currentMonthExpense: 0, lastMonthExpense: 0, lastMonthName: ''),
+    orElse: () => MonthComparison(
+      currentMonthExpense: 0,
+      lastMonthExpense: 0,
+      lastMonthName: '',
+    ),
   );
 });
 
 String _monthName(int month) {
-  const names = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const names = [
+    '',
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
   return names[month.clamp(1, 12)];
 }

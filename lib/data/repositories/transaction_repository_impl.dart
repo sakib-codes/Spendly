@@ -2,6 +2,7 @@ import 'package:spendly/core/database/app_database.dart';
 import 'package:spendly/core/database/database_tables.dart';
 import 'package:spendly/data/models/transaction_model.dart';
 import 'package:spendly/domain/entities/transaction.dart';
+
 import 'transaction_repository.dart';
 
 class TransactionRepositoryImpl implements TransactionRepository {

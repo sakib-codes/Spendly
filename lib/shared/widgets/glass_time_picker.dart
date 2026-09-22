@@ -7,10 +7,7 @@ import 'package:spendly/shared/widgets/primary_button.dart';
 class GlassTimePicker extends StatefulWidget {
   final TimeOfDay initialTime;
 
-  const GlassTimePicker({
-    super.key,
-    required this.initialTime,
-  });
+  const GlassTimePicker({super.key, required this.initialTime});
 
   static Future<TimeOfDay?> show({
     required BuildContext context,
@@ -29,10 +26,9 @@ class GlassTimePicker extends StatefulWidget {
         return FadeTransition(
           opacity: animation,
           child: ScaleTransition(
-            scale: Tween<double>(begin: 0.95, end: 1.0).animate(CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeOutCubic,
-            )),
+            scale: Tween<double>(begin: 0.95, end: 1.0).animate(
+              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+            ),
             child: child,
           ),
         );
@@ -51,14 +47,20 @@ class _GlassTimePickerState extends State<GlassTimePicker> {
   void initState() {
     super.initState();
     final now = DateTime.now();
-    _selectedDateTime = DateTime(now.year, now.month, now.day, widget.initialTime.hour, widget.initialTime.minute);
+    _selectedDateTime = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      widget.initialTime.hour,
+      widget.initialTime.minute,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final brightness = theme.brightness;
-    
+
     return Center(
       child: Material(
         color: Colors.transparent,
@@ -73,7 +75,9 @@ class _GlassTimePickerState extends State<GlassTimePicker> {
                   alignment: Alignment.centerLeft,
                   child: Text(
                     'Select time',
-                    style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -81,20 +85,21 @@ class _GlassTimePickerState extends State<GlassTimePicker> {
                   alignment: Alignment.centerLeft,
                   child: Text(
                     DateFormat('h:mm a').format(_selectedDateTime),
-                    style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),
-                
+
                 SizedBox(
                   height: 200,
                   child: CupertinoTheme(
                     data: CupertinoThemeData(
                       brightness: brightness,
                       textTheme: CupertinoTextThemeData(
-                        dateTimePickerTextStyle: theme.textTheme.titleLarge?.copyWith(
-                          color: theme.colorScheme.onSurface,
-                        ),
+                        dateTimePickerTextStyle: theme.textTheme.titleLarge
+                            ?.copyWith(color: theme.colorScheme.onSurface),
                       ),
                     ),
                     child: CupertinoDatePicker(
@@ -108,15 +113,20 @@ class _GlassTimePickerState extends State<GlassTimePicker> {
                     ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 24),
-                
+
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: Text('Cancel', style: TextStyle(color: theme.colorScheme.onSurfaceVariant)),
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 8),
                     SizedBox(
@@ -124,7 +134,7 @@ class _GlassTimePickerState extends State<GlassTimePicker> {
                       child: PrimaryButton(
                         text: 'OK',
                         onPressed: () => Navigator.pop(
-                          context, 
+                          context,
                           TimeOfDay.fromDateTime(_selectedDateTime),
                         ),
                       ),

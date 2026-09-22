@@ -2,6 +2,7 @@ import 'package:spendly/core/database/app_database.dart';
 import 'package:spendly/core/database/database_tables.dart';
 import 'package:spendly/data/models/category_model.dart';
 import 'package:spendly/domain/entities/category.dart';
+
 import 'category_repository.dart';
 
 class CategoryRepositoryImpl implements CategoryRepository {

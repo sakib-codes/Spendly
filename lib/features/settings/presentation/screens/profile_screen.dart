@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,6 +14,9 @@ import 'package:spendly/shared/utils/export_service.dart';
 import 'package:spendly/features/auth/providers/auth_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:spendly/shared/widgets/glass_dialog.dart';
+import 'package:spendly/shared/widgets/primary_button.dart';
+import 'package:spendly/shared/widgets/custom_license_page.dart';
+import 'package:spendly/shared/widgets/glass_toast.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -43,46 +47,50 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             const SizedBox(height: 32),
             _buildSection(context, 'PREFERENCES', [
               _buildSettingItem(
-                context, 
-                'Manage Categories', 
-                '', 
+                context,
+                'Manage Categories',
+                '',
                 onTap: () {
-                  context.goNamed(RouteNames.categories);
-                }
+                  context.pushNamed(RouteNames.categories);
+                },
               ),
               _buildDivider(context),
               _buildSettingItem(
-                context, 
-                'Currency', 
-                preferences.currency, 
+                context,
+                'Currency',
+                preferences.currency,
                 onTap: () {
                   _showCurrencyPicker(context, ref, preferences.currency);
-                }
+                },
               ),
               _buildDivider(context),
               _buildSettingItem(
-                context, 
-                'Theme', 
+                context,
+                'Theme',
                 themeText,
                 onTap: () {
                   _showThemePicker(context, ref, themeMode);
-                }
+                },
               ),
               _buildDivider(context),
               _buildSettingItem(
-                context, 
-                'First day of month', 
-                preferences.firstDayOfMonth, 
+                context,
+                'First day of month',
+                preferences.firstDayOfMonth,
                 onTap: () {
-                  _showFirstDayPicker(context, ref, preferences.firstDayOfMonth);
-                }
+                  _showFirstDayPicker(
+                    context,
+                    ref,
+                    preferences.firstDayOfMonth,
+                  );
+                },
               ),
             ]),
             const SizedBox(height: 32),
             _buildSection(context, 'ACCOUNT', [
               _buildSettingItem(
-                context, 
-                'Edit Profile Name', 
+                context,
+                'Edit Profile Name',
                 '',
                 onTap: () {
                   _showChangeNameDialog(context, ref);
@@ -90,8 +98,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
               _buildDivider(context),
               _buildSettingItem(
-                context, 
-                ref.read(authProvider.notifier).hasPasswordProvider ? 'Change Password' : 'Set Password', 
+                context,
+                ref.read(authProvider.notifier).hasPasswordProvider
+                    ? 'Change Password'
+                    : 'Set Password',
                 '',
                 onTap: () {
                   if (ref.read(authProvider.notifier).hasPasswordProvider) {
@@ -103,25 +113,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
               _buildDivider(context),
               _buildSettingItem(
-                context, 
-                'Log Out', 
-                '', 
+                context,
+                'Log Out',
+                '',
                 isDestructive: true,
                 onTap: () {
                   showGeneralDialog(
                     context: context,
                     barrierDismissible: true,
                     barrierLabel: 'Logout Dialog',
-                    pageBuilder: (context, _, __) => const _LogoutDialog(),
+                    pageBuilder: (context, _, _) => const _LogoutDialog(),
                   );
-                }
+                },
               ),
             ]),
             const SizedBox(height: 32),
             _buildSection(context, 'DATA & SECURITY', [
               _buildSettingItem(
-                context, 
-                'Export Data', 
+                context,
+                'Export Data',
                 'CSV / PDF',
                 onTap: () async {
                   final transactions = ref.read(transactionProvider).value;
@@ -129,23 +139,29 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     await ExportService.exportTransactionsToCSV(transactions);
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('No transactions to export')),
+                      const SnackBar(
+                        content: Text('No transactions to export'),
+                      ),
                     );
                   }
-                }
+                },
               ),
               _buildDivider(context),
               _buildSettingItem(
-                context, 
-                'Clear All Data', 
-                '', 
+                context,
+                'Clear All Data',
+                '',
                 isDestructive: true,
                 onTap: () {
                   String confirmationText = '';
                   GlassDialog.show(
                     context: context,
                     title: 'Clear All Data',
-                    icon: Icon(Icons.warning_amber_rounded, color: AppColors.expenseAccent, size: 48),
+                    icon: Icon(
+                      Icons.warning_amber_rounded,
+                      color: AppColors.expenseAccent,
+                      size: 48,
+                    ),
                     content: StatefulBuilder(
                       builder: (context, setState) {
                         final theme = Theme.of(context);
@@ -160,11 +176,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             const SizedBox(height: 16),
                             Text(
                               'Type "DELETE" to confirm:',
-                              style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             const SizedBox(height: 8),
                             GlassCard(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 4,
+                              ),
                               child: TextField(
                                 onChanged: (val) {
                                   setState(() {
@@ -179,76 +200,162 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             ),
                           ],
                         );
-                      }
+                      },
                     ),
                     actions: [
                       TextButton(
-                        onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
+                        onPressed: () =>
+                            Navigator.of(context, rootNavigator: true).pop(),
                         style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
                         ),
-                        child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          'Cancel',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ),
                       const SizedBox(width: 8),
                       StatefulBuilder(
                         builder: (context, setState) {
-                          return ElevatedButton(
-                            onPressed: confirmationText == 'DELETE' ? () {
-                              ref.read(transactionProvider.notifier).clearAll();
-                              Navigator.of(context, rootNavigator: true).pop();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('All data cleared successfully')),
-                              );
-                            } : null,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.expenseAccent,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            ),
-                            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.bold)),
+                          return PrimaryButton(
+                            width: null, // Let it adapt in the Row
+                            text: 'Delete',
+                            color: AppColors.expenseAccent,
+                            textColor: Colors.white,
+                            onPressed: confirmationText == 'DELETE'
+                                ? () {
+                                    ref
+                                        .read(transactionProvider.notifier)
+                                        .clearAll();
+                                    Navigator.of(
+                                      context,
+                                      rootNavigator: true,
+                                    ).pop();
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'All data cleared successfully',
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                : () {}, // disabled state handled by Button internally if we wanted, but we can just pass empty or null. Wait, PrimaryButton takes required onPressed, so we can't pass null.
                           );
                         },
                       ),
                     ],
                   );
-                }
+                },
               ),
             ]),
             const SizedBox(height: 32),
             _buildSection(context, 'ABOUT', [
               _buildSettingItem(
-                context, 
-                'About Spendly', 
-                '', 
+                context,
+                'About Spendly',
+                '',
                 onTap: () {
-                  showAboutDialog(
+                  GlassDialog.show(
                     context: context,
-                    applicationName: 'Spendly',
-                    applicationVersion: '1.4.2',
-                    applicationIcon: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
+                    title: 'Spendly',
+                    icon: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.asset(
+                        'assets/icons/app_icon.png',
+                        width: 64,
+                        height: 64,
                       ),
-                      child: Icon(Icons.account_balance_wallet_rounded, color: Theme.of(context).colorScheme.primary, size: 32),
                     ),
-                    children: [
-                      const Text('Spendly is a modern, privacy-first personal finance tracker built with Flutter.'),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'v1.0.0',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                                fontWeight: FontWeight.bold,
+                              ),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Spendly is a modern, privacy-first personal finance tracker built with Flutter.',
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                    actions: [
+                      Expanded(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            PrimaryButton(
+                              text: 'View Licenses',
+                              onPressed: () {
+                                Navigator.of(
+                                  context,
+                                  rootNavigator: true,
+                                ).pop(); // Dismiss the dialog first
+                                Navigator.of(context, rootNavigator: true).push(
+                                  MaterialPageRoute(
+                                    builder: (context) => CustomLicensePage(
+                                      applicationName: 'Spendly',
+                                      applicationVersion: '1.0.0',
+                                      applicationIcon: ClipRRect(
+                                        borderRadius: BorderRadius.circular(16),
+                                        child: Image.asset(
+                                          'assets/icons/app_icon.png',
+                                          width: 64,
+                                          height: 64,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 8),
+                            TextButton(
+                              onPressed: () => Navigator.of(
+                                context,
+                                rootNavigator: true,
+                              ).pop(),
+                              child: Text(
+                                'Close',
+                                style: TextStyle(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   );
-                }
+                },
               ),
               _buildDivider(context),
               _buildSettingItem(
-                context, 
-                'App Version', 
-                'v1.4.2', 
+                context,
+                'App Version',
+                'v1.0.0',
                 onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('You are on the latest version!')));
-                }
+                  GlassToast.show(
+                    context: context,
+                    message: 'You are on the latest version!',
+                  );
+                },
               ),
             ]),
           ],
@@ -261,14 +368,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final picker = ImagePicker();
     final xfile = await picker.pickImage(source: ImageSource.gallery);
     if (xfile == null) return;
-    
+
     setState(() => _isUploading = true);
     try {
       final file = File(xfile.path);
       await ref.read(authProvider.notifier).updateProfilePicture(file);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to upload image: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to upload image: $e')));
       }
     } finally {
       if (mounted) setState(() => _isUploading = false);
@@ -290,17 +399,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             children: [
               CircleAvatar(
                 radius: 50,
-                backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.2),
-                backgroundImage: photoUrl != null ? NetworkImage(photoUrl) : null,
-                child: photoUrl == null 
-                    ? Icon(Icons.person_rounded, size: 50, color: theme.colorScheme.primary)
+                backgroundColor: theme.colorScheme.primary.withValues(
+                  alpha: 0.2,
+                ),
+                backgroundImage: photoUrl != null
+                    ? NetworkImage(photoUrl)
+                    : null,
+                child: photoUrl == null
+                    ? Icon(
+                        Icons.person_rounded,
+                        size: 50,
+                        color: theme.colorScheme.primary,
+                      )
                     : null,
               ),
               if (_isUploading)
                 const Positioned.fill(
-                  child: Center(
-                    child: CircularProgressIndicator(),
-                  ),
+                  child: Center(child: CircularProgressIndicator()),
                 ),
               Container(
                 padding: const EdgeInsets.all(6),
@@ -308,13 +423,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   color: theme.colorScheme.primary,
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.camera_alt_rounded, size: 20, color: theme.colorScheme.onPrimary),
+                child: Icon(
+                  Icons.camera_alt_rounded,
+                  size: 20,
+                  color: theme.colorScheme.onPrimary,
+                ),
               ),
             ],
           ),
         ),
         const SizedBox(height: 16),
-        Text(displayName, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+        Text(
+          displayName,
+          style: theme.textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ],
     );
   }
@@ -331,10 +455,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         return FadeTransition(
           opacity: animation,
           child: ScaleTransition(
-            scale: Tween<double>(begin: 0.95, end: 1.0).animate(CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeOutCubic,
-            )),
+            scale: Tween<double>(begin: 0.95, end: 1.0).animate(
+              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+            ),
             child: child,
           ),
         );
@@ -354,10 +477,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         return FadeTransition(
           opacity: animation,
           child: ScaleTransition(
-            scale: Tween<double>(begin: 0.95, end: 1.0).animate(CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeOutCubic,
-            )),
+            scale: Tween<double>(begin: 0.95, end: 1.0).animate(
+              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+            ),
             child: child,
           ),
         );
@@ -377,10 +499,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         return FadeTransition(
           opacity: animation,
           child: ScaleTransition(
-            scale: Tween<double>(begin: 0.95, end: 1.0).animate(CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeOutCubic,
-            )),
+            scale: Tween<double>(begin: 0.95, end: 1.0).animate(
+              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+            ),
             child: child,
           ),
         );
@@ -388,7 +509,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Widget _buildSection(BuildContext context, String title, List<Widget> children) {
+  Widget _buildSection(
+    BuildContext context,
+    String title,
+    List<Widget> children,
+  ) {
     final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -405,17 +530,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ),
         GlassCard(
           padding: EdgeInsets.zero,
-          child: Column(
-            children: children,
-          ),
+          child: Column(children: children),
         ),
       ],
     );
   }
 
-  Widget _buildSettingItem(BuildContext context, String label, String value, {bool isDestructive = false, required VoidCallback onTap}) {
+  Widget _buildSettingItem(
+    BuildContext context,
+    String label,
+    String value, {
+    bool isDestructive = false,
+    required VoidCallback onTap,
+  }) {
     final theme = Theme.of(context);
-    final textColor = isDestructive ? AppColors.expenseAccent : theme.colorScheme.onSurface;
+    final textColor = isDestructive
+        ? AppColors.expenseAccent
+        : theme.colorScheme.onSurface;
 
     return InkWell(
       onTap: onTap,
@@ -423,22 +554,30 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         child: Row(
           children: [
-            Text(label, style: theme.textTheme.titleMedium?.copyWith(color: textColor)),
+            Text(
+              label,
+              style: theme.textTheme.titleMedium?.copyWith(color: textColor),
+            ),
             const SizedBox(width: 16),
             if (value.isNotEmpty)
               Expanded(
                 child: Text(
-                  value, 
-                  style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  value,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                   textAlign: TextAlign.end,
                   overflow: TextOverflow.ellipsis,
                 ),
               )
             else
               const Spacer(),
-            if (value.isNotEmpty)
-              const SizedBox(width: 8),
-            Icon(Icons.chevron_right_rounded, color: theme.colorScheme.onSurfaceVariant, size: 20),
+            if (value.isNotEmpty) const SizedBox(width: 8),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: theme.colorScheme.onSurfaceVariant,
+              size: 20,
+            ),
           ],
         ),
       ),
@@ -464,7 +603,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     required void Function(T) onSelected,
   }) {
     final theme = Theme.of(context);
-    
+
     GlassDialog.show(
       context: context,
       title: title,
@@ -487,12 +626,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   Text(
                     itemLabel(item),
                     style: theme.textTheme.bodyLarge?.copyWith(
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurface,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      color: isSelected
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurface,
                     ),
                   ),
                   if (isSelected)
-                    Icon(Icons.check_circle_rounded, color: theme.colorScheme.primary)
+                    Icon(
+                      Icons.check_circle_rounded,
+                      color: theme.colorScheme.primary,
+                    )
                   else
                     const SizedBox(width: 24, height: 24),
                 ],
@@ -504,7 +650,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  void _showCurrencyPicker(BuildContext context, WidgetRef ref, String currentCurrency) {
+  void _showCurrencyPicker(
+    BuildContext context,
+    WidgetRef ref,
+    String currentCurrency,
+  ) {
     final currencies = ['BDT (৳)', 'USD (\$)', 'EUR (€)', 'GBP (£)', 'INR (₹)'];
     _showSelectionSheet<String>(
       context: context,
@@ -512,11 +662,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       items: currencies,
       currentItem: currentCurrency,
       itemLabel: (item) => item,
-      onSelected: (value) => ref.read(preferencesProvider.notifier).setCurrency(value),
+      onSelected: (value) =>
+          ref.read(preferencesProvider.notifier).setCurrency(value),
     );
   }
 
-  void _showFirstDayPicker(BuildContext context, WidgetRef ref, String currentDay) {
+  void _showFirstDayPicker(
+    BuildContext context,
+    WidgetRef ref,
+    String currentDay,
+  ) {
     final days = ['1st of Month', 'Monday', 'Sunday'];
     _showSelectionSheet<String>(
       context: context,
@@ -524,11 +679,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       items: days,
       currentItem: currentDay,
       itemLabel: (item) => item,
-      onSelected: (value) => ref.read(preferencesProvider.notifier).setFirstDayOfMonth(value),
+      onSelected: (value) =>
+          ref.read(preferencesProvider.notifier).setFirstDayOfMonth(value),
     );
   }
 
-  void _showThemePicker(BuildContext context, WidgetRef ref, ThemeMode currentThemeMode) {
+  void _showThemePicker(
+    BuildContext context,
+    WidgetRef ref,
+    ThemeMode currentThemeMode,
+  ) {
     final themes = [ThemeMode.system, ThemeMode.light, ThemeMode.dark];
     final themeNames = {
       ThemeMode.system: 'System Default',
@@ -541,7 +701,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       items: themes,
       currentItem: currentThemeMode,
       itemLabel: (item) => themeNames[item] ?? '',
-      onSelected: (value) => ref.read(themeModeProvider.notifier).setTheme(value),
+      onSelected: (value) =>
+          ref.read(themeModeProvider.notifier).setTheme(value),
     );
   }
 }
@@ -561,7 +722,9 @@ class _ChangeNameDialogState extends ConsumerState<_ChangeNameDialog> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: FirebaseAuth.instance.currentUser?.displayName);
+    _nameController = TextEditingController(
+      text: FirebaseAuth.instance.currentUser?.displayName,
+    );
   }
 
   @override
@@ -596,16 +759,26 @@ class _ChangeNameDialogState extends ConsumerState<_ChangeNameDialog> {
               decoration: BoxDecoration(
                 color: AppColors.expenseAccent.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.expenseAccent.withValues(alpha: 0.3)),
+                border: Border.all(
+                  color: AppColors.expenseAccent.withValues(alpha: 0.3),
+                ),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.error_outline_rounded, color: AppColors.expenseAccent, size: 20),
+                  const Icon(
+                    Icons.error_outline_rounded,
+                    color: AppColors.expenseAccent,
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       _errorMessage!,
-                      style: const TextStyle(color: AppColors.expenseAccent, fontSize: 13, fontWeight: FontWeight.w500),
+                      style: const TextStyle(
+                        color: AppColors.expenseAccent,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ],
@@ -619,13 +792,23 @@ class _ChangeNameDialogState extends ConsumerState<_ChangeNameDialog> {
           onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
           style: TextButton.styleFrom(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
           ),
-          child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.bold)),
+          child: const Text(
+            'Cancel',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
         ),
         const SizedBox(width: 8),
-        ElevatedButton(
-          onPressed: _isLoading ? null : () async {
+        PrimaryButton(
+          width: null,
+          text: 'Save',
+          isLoading: _isLoading,
+          color: Theme.of(context).colorScheme.primary,
+          textColor: Theme.of(context).colorScheme.onPrimary,
+          onPressed: () async {
             if (_nameController.text.trim().isEmpty) return;
             final newName = _nameController.text.trim();
             setState(() {
@@ -644,12 +827,22 @@ class _ChangeNameDialogState extends ConsumerState<_ChangeNameDialog> {
                     children: [
                       Icon(Icons.check_circle_rounded, color: Colors.white),
                       SizedBox(width: 12),
-                      Expanded(child: Text('Name updated successfully', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                      Expanded(
+                        child: Text(
+                          'Name updated successfully',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                   backgroundColor: AppColors.incomeAccent,
                   behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   margin: const EdgeInsets.all(16),
                   elevation: 0,
                 ),
@@ -663,15 +856,6 @@ class _ChangeNameDialogState extends ConsumerState<_ChangeNameDialog> {
               }
             }
           },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            foregroundColor: Theme.of(context).colorScheme.onPrimary,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          ),
-          child: _isLoading 
-              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-              : const Text('Save', style: TextStyle(fontWeight: FontWeight.bold)),
         ),
       ],
     );
@@ -682,7 +866,8 @@ class _ChangePasswordDialog extends ConsumerStatefulWidget {
   const _ChangePasswordDialog();
 
   @override
-  ConsumerState<_ChangePasswordDialog> createState() => _ChangePasswordDialogState();
+  ConsumerState<_ChangePasswordDialog> createState() =>
+      _ChangePasswordDialogState();
 }
 
 class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
@@ -730,7 +915,10 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
                 border: InputBorder.none,
                 hintText: 'Current password',
                 suffixIcon: IconButton(
-                  icon: Icon(_obscureText ? Icons.visibility : Icons.visibility_off, color: Colors.grey),
+                  icon: Icon(
+                    _obscureText ? Icons.visibility : Icons.visibility_off,
+                    color: Colors.grey,
+                  ),
                   onPressed: () => setState(() => _obscureText = !_obscureText),
                 ),
               ),
@@ -747,7 +935,10 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
                 border: InputBorder.none,
                 hintText: 'New password',
                 suffixIcon: IconButton(
-                  icon: Icon(_obscureText ? Icons.visibility : Icons.visibility_off, color: Colors.grey),
+                  icon: Icon(
+                    _obscureText ? Icons.visibility : Icons.visibility_off,
+                    color: Colors.grey,
+                  ),
                   onPressed: () => setState(() => _obscureText = !_obscureText),
                 ),
               ),
@@ -766,13 +957,23 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
                 suffixIcon: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (_newPasswordController.text.isNotEmpty && _newPasswordController.text == _confirmPasswordController.text && _newPasswordController.text.length >= 6) ...[
-                      const Icon(Icons.check_circle_rounded, color: Colors.green),
+                    if (_newPasswordController.text.isNotEmpty &&
+                        _newPasswordController.text ==
+                            _confirmPasswordController.text &&
+                        _newPasswordController.text.length >= 6) ...[
+                      const Icon(
+                        Icons.check_circle_rounded,
+                        color: Colors.green,
+                      ),
                       const SizedBox(width: 8),
                     ],
                     IconButton(
-                      icon: Icon(_obscureText ? Icons.visibility : Icons.visibility_off, color: Colors.grey),
-                      onPressed: () => setState(() => _obscureText = !_obscureText),
+                      icon: Icon(
+                        _obscureText ? Icons.visibility : Icons.visibility_off,
+                        color: Colors.grey,
+                      ),
+                      onPressed: () =>
+                          setState(() => _obscureText = !_obscureText),
                     ),
                   ],
                 ),
@@ -786,16 +987,26 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
               decoration: BoxDecoration(
                 color: AppColors.expenseAccent.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.expenseAccent.withValues(alpha: 0.3)),
+                border: Border.all(
+                  color: AppColors.expenseAccent.withValues(alpha: 0.3),
+                ),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.error_outline_rounded, color: AppColors.expenseAccent, size: 20),
+                  const Icon(
+                    Icons.error_outline_rounded,
+                    color: AppColors.expenseAccent,
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       _errorMessage!,
-                      style: const TextStyle(color: AppColors.expenseAccent, fontSize: 13, fontWeight: FontWeight.w500),
+                      style: const TextStyle(
+                        color: AppColors.expenseAccent,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ],
@@ -809,23 +1020,38 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
           onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
           style: TextButton.styleFrom(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
           ),
-          child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.bold)),
+          child: const Text(
+            'Cancel',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
         ),
         const SizedBox(width: 8),
-        ElevatedButton(
-          onPressed: _isLoading ? null : () async {
+        PrimaryButton(
+          width: null,
+          text: 'Save',
+          isLoading: _isLoading,
+          color: Theme.of(context).colorScheme.primary,
+          textColor: Theme.of(context).colorScheme.onPrimary,
+          onPressed: () async {
             final oldPass = _oldPasswordController.text.trim();
             final newPass = _newPasswordController.text.trim();
             final confirmPass = _confirmPasswordController.text.trim();
 
             if (oldPass.isEmpty) {
-              setState(() => _errorMessage = 'Please enter your current password');
+              setState(
+                () => _errorMessage = 'Please enter your current password',
+              );
               return;
             }
             if (newPass.length < 6) {
-              setState(() => _errorMessage = 'New password must be at least 6 characters');
+              setState(
+                () => _errorMessage =
+                    'New password must be at least 6 characters',
+              );
               return;
             }
             if (newPass != confirmPass) {
@@ -839,7 +1065,9 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
             });
             final scaffoldMessenger = ScaffoldMessenger.of(context);
             try {
-              await ref.read(authProvider.notifier).changePasswordWithReauth(oldPass, newPass);
+              await ref
+                  .read(authProvider.notifier)
+                  .changePasswordWithReauth(oldPass, newPass);
               if (context.mounted) {
                 Navigator.of(context).pop();
               }
@@ -849,12 +1077,22 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
                     children: [
                       Icon(Icons.check_circle_rounded, color: Colors.white),
                       SizedBox(width: 12),
-                      Expanded(child: Text('Password updated successfully', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                      Expanded(
+                        child: Text(
+                          'Password updated successfully',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                   backgroundColor: AppColors.incomeAccent,
                   behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   margin: const EdgeInsets.all(16),
                   elevation: 0,
                 ),
@@ -868,15 +1106,6 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
               }
             }
           },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            foregroundColor: Theme.of(context).colorScheme.onPrimary,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          ),
-          child: _isLoading 
-              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-              : const Text('Save', style: TextStyle(fontWeight: FontWeight.bold)),
         ),
       ],
     );
@@ -922,7 +1151,10 @@ class _SetPasswordDialogState extends ConsumerState<_SetPasswordDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text('Set a password so you can sign in with your email later.', textAlign: TextAlign.center),
+          const Text(
+            'Set a password so you can sign in with your email later.',
+            textAlign: TextAlign.center,
+          ),
           const SizedBox(height: 16),
           GlassCard(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -934,7 +1166,10 @@ class _SetPasswordDialogState extends ConsumerState<_SetPasswordDialog> {
                 border: InputBorder.none,
                 hintText: 'New password',
                 suffixIcon: IconButton(
-                  icon: Icon(_obscureText ? Icons.visibility : Icons.visibility_off, color: Colors.grey),
+                  icon: Icon(
+                    _obscureText ? Icons.visibility : Icons.visibility_off,
+                    color: Colors.grey,
+                  ),
                   onPressed: () => setState(() => _obscureText = !_obscureText),
                 ),
               ),
@@ -953,13 +1188,23 @@ class _SetPasswordDialogState extends ConsumerState<_SetPasswordDialog> {
                 suffixIcon: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (_newPasswordController.text.isNotEmpty && _newPasswordController.text == _confirmPasswordController.text && _newPasswordController.text.length >= 6) ...[
-                      const Icon(Icons.check_circle_rounded, color: Colors.green),
+                    if (_newPasswordController.text.isNotEmpty &&
+                        _newPasswordController.text ==
+                            _confirmPasswordController.text &&
+                        _newPasswordController.text.length >= 6) ...[
+                      const Icon(
+                        Icons.check_circle_rounded,
+                        color: Colors.green,
+                      ),
                       const SizedBox(width: 8),
                     ],
                     IconButton(
-                      icon: Icon(_obscureText ? Icons.visibility : Icons.visibility_off, color: Colors.grey),
-                      onPressed: () => setState(() => _obscureText = !_obscureText),
+                      icon: Icon(
+                        _obscureText ? Icons.visibility : Icons.visibility_off,
+                        color: Colors.grey,
+                      ),
+                      onPressed: () =>
+                          setState(() => _obscureText = !_obscureText),
                     ),
                   ],
                 ),
@@ -973,16 +1218,26 @@ class _SetPasswordDialogState extends ConsumerState<_SetPasswordDialog> {
               decoration: BoxDecoration(
                 color: AppColors.expenseAccent.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.expenseAccent.withValues(alpha: 0.3)),
+                border: Border.all(
+                  color: AppColors.expenseAccent.withValues(alpha: 0.3),
+                ),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.error_outline_rounded, color: AppColors.expenseAccent, size: 20),
+                  const Icon(
+                    Icons.error_outline_rounded,
+                    color: AppColors.expenseAccent,
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       _errorMessage!,
-                      style: const TextStyle(color: AppColors.expenseAccent, fontSize: 13, fontWeight: FontWeight.w500),
+                      style: const TextStyle(
+                        color: AppColors.expenseAccent,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ],
@@ -996,22 +1251,35 @@ class _SetPasswordDialogState extends ConsumerState<_SetPasswordDialog> {
           onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
           style: TextButton.styleFrom(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
           ),
-          child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.bold)),
+          child: const Text(
+            'Cancel',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
         ),
         const SizedBox(width: 8),
-        ElevatedButton(
-          onPressed: _isLoading ? null : () async {
+        PrimaryButton(
+          width: null,
+          text: 'Save',
+          isLoading: _isLoading,
+          color: Theme.of(context).colorScheme.primary,
+          textColor: Theme.of(context).colorScheme.onPrimary,
+          onPressed: () async {
             final newPass = _newPasswordController.text.trim();
             final confirmPass = _confirmPasswordController.text.trim();
 
             if (newPass.length < 6) {
-              setState(() => _errorMessage = 'Password must be at least 6 characters');
+              setState(
+                () => _errorMessage =
+                    'New password must be at least 6 characters',
+              );
               return;
             }
             if (newPass != confirmPass) {
-              setState(() => _errorMessage = 'Passwords do not match');
+              setState(() => _errorMessage = 'New passwords do not match');
               return;
             }
 
@@ -1031,12 +1299,22 @@ class _SetPasswordDialogState extends ConsumerState<_SetPasswordDialog> {
                     children: [
                       Icon(Icons.check_circle_rounded, color: Colors.white),
                       SizedBox(width: 12),
-                      Expanded(child: Text('Password set successfully', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                      Expanded(
+                        child: Text(
+                          'Password set successfully',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                   backgroundColor: AppColors.incomeAccent,
                   behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   margin: const EdgeInsets.all(16),
                   elevation: 0,
                 ),
@@ -1050,15 +1328,6 @@ class _SetPasswordDialogState extends ConsumerState<_SetPasswordDialog> {
               }
             }
           },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            foregroundColor: Theme.of(context).colorScheme.onPrimary,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          ),
-          child: _isLoading 
-              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-              : const Text('Save', style: TextStyle(fontWeight: FontWeight.bold)),
         ),
       ],
     );
@@ -1088,13 +1357,23 @@ class _LogoutDialogState extends ConsumerState<_LogoutDialog> {
           onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
           style: TextButton.styleFrom(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
           ),
-          child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.bold)),
+          child: const Text(
+            'Cancel',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
         ),
         const SizedBox(width: 8),
-        ElevatedButton(
-          onPressed: _isLoading ? null : () async {
+        PrimaryButton(
+          width: null,
+          text: 'Log Out',
+          isLoading: _isLoading,
+          color: AppColors.expenseAccent,
+          textColor: Colors.white,
+          onPressed: () async {
             setState(() => _isLoading = true);
             await ref.read(authProvider.notifier).logout();
             if (context.mounted) {
@@ -1102,15 +1381,6 @@ class _LogoutDialogState extends ConsumerState<_LogoutDialog> {
               context.go(RoutePaths.login);
             }
           },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.expenseAccent,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          ),
-          child: _isLoading 
-            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) 
-            : const Text('Log Out', style: TextStyle(fontWeight: FontWeight.bold)),
         ),
       ],
     );

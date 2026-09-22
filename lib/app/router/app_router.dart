@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
 import 'route_names.dart';
 import '../../domain/entities/transaction.dart';
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
@@ -15,6 +16,7 @@ import '../../features/auth/presentation/screens/signup_screen.dart';
 import '../../features/auth/presentation/screens/set_password_screen.dart';
 import '../../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../../shared/widgets/app_scaffold.dart';
+import '../../shared/widgets/animated_branch_container.dart';
 
 final appRouter = GoRouter(
   initialLocation: RoutePaths.splash,
@@ -62,9 +64,69 @@ final appRouter = GoRouter(
       path: RoutePaths.setPassword,
       builder: (context, state) => const SetPasswordScreen(),
     ),
-    StatefulShellRoute.indexedStack(
+    GoRoute(
+      name: RouteNames.addTransaction,
+      path: RoutePaths.addTransaction,
+      pageBuilder: (context, state) => CustomTransitionPage(
+        key: state.pageKey,
+        child: AddTransactionScreen(
+          transactionToEdit: state.extra as Transaction?,
+        ),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(0.0, 1.0);
+          const end = Offset.zero;
+          const curve = Curves.easeOutQuart;
+
+          var tween = Tween(
+            begin: begin,
+            end: end,
+          ).chain(CurveTween(curve: curve));
+
+          return SlideTransition(
+            position: animation.drive(tween),
+            child: child,
+          );
+        },
+      ),
+    ),
+    GoRoute(
+      name: RouteNames.transactionDetails,
+      path: RoutePaths.transactionDetails,
+      builder: (context, state) =>
+          TransactionDetailsScreen(transactionId: state.pathParameters['id']!),
+    ),
+    GoRoute(
+      name: RouteNames.categories,
+      path: RoutePaths.categories,
+      pageBuilder: (context, state) => CustomTransitionPage(
+        key: state.pageKey,
+        child: const ManageCategoriesScreen(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(0.0, 1.0);
+          const end = Offset.zero;
+          const curve = Curves.easeOutQuart;
+
+          var tween = Tween(
+            begin: begin,
+            end: end,
+          ).chain(CurveTween(curve: curve));
+
+          return SlideTransition(
+            position: animation.drive(tween),
+            child: child,
+          );
+        },
+      ),
+    ),
+    StatefulShellRoute(
       builder: (context, state, navigationShell) {
         return AppScaffold(navigationShell: navigationShell);
+      },
+      navigatorContainerBuilder: (context, navigationShell, children) {
+        return AnimatedBranchContainer(
+          currentIndex: navigationShell.currentIndex,
+          children: children,
+        );
       },
       branches: [
         StatefulShellBranch(
@@ -82,20 +144,6 @@ final appRouter = GoRouter(
               name: RouteNames.transactions,
               path: RoutePaths.transactions,
               builder: (context, state) => const TransactionsScreen(),
-              routes: [
-                GoRoute(
-                  name: RouteNames.addTransaction,
-                  path: RoutePaths.addTransaction,
-                  builder: (context, state) => AddTransactionScreen(
-                    transactionToEdit: state.extra as Transaction?,
-                  ),
-                ),
-                GoRoute(
-                  name: RouteNames.transactionDetails,
-                  path: RoutePaths.transactionDetails,
-                  builder: (context, state) => TransactionDetailsScreen(transactionId: state.pathParameters['id']!),
-                ),
-              ],
             ),
           ],
         ),
@@ -114,13 +162,6 @@ final appRouter = GoRouter(
               name: RouteNames.settings,
               path: RoutePaths.settings,
               builder: (context, state) => const ProfileScreen(),
-              routes: [
-                GoRoute(
-                  name: RouteNames.categories,
-                  path: RoutePaths.categories,
-                  builder: (context, state) => const ManageCategoriesScreen(),
-                ),
-              ],
             ),
           ],
         ),

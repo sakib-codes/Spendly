@@ -30,19 +30,19 @@ class ZoomableLineChart extends StatefulWidget {
 class _ZoomableLineChartState extends State<ZoomableLineChart> {
   double _zoomLevel = 1.0;
   double _baseZoomLevel = 1.0;
-  
+
   double _panOffset = 0.0;
-  double _basePanOffset = 0.0;
-  
-  double _focalPointStart = 0.0;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final double maxLimit = widget.labels.isNotEmpty ? widget.labels.length.toDouble() - 1.0 : 0.0;
+    final double maxLimit = widget.labels.isNotEmpty
+        ? widget.labels.length.toDouble() - 1.0
+        : 0.0;
 
     // Minimum base width based on the screen.
-    double screenWidth = MediaQuery.of(context).size.width - 40; // 20 padding on each side
+    double screenWidth =
+        MediaQuery.of(context).size.width - 40; // 20 padding on each side
     if (screenWidth < 100) screenWidth = 300;
 
     // Give each day a base width of 30 pixels for a comfortable un-zoomed view.
@@ -57,8 +57,6 @@ class _ZoomableLineChartState extends State<ZoomableLineChart> {
       child: GestureDetector(
         onScaleStart: (details) {
           _baseZoomLevel = _zoomLevel;
-          _basePanOffset = _panOffset;
-          _focalPointStart = details.localFocalPoint.dx;
         },
         onScaleUpdate: (details) {
           setState(() {
@@ -68,7 +66,7 @@ class _ZoomableLineChartState extends State<ZoomableLineChart> {
               _zoomLevel = _baseZoomLevel * details.scale;
               if (_zoomLevel < 1.0) _zoomLevel = 1.0;
               if (_zoomLevel > 10.0) _zoomLevel = 10.0;
-              
+
               // Adjust pan offset so we zoom into the focal point
               if (oldZoom != _zoomLevel) {
                 double focalPoint = details.localFocalPoint.dx;
@@ -84,12 +82,12 @@ class _ZoomableLineChartState extends State<ZoomableLineChart> {
             // 2. Handle Panning
             // We add the translation from the focal point
             _panOffset += details.focalPointDelta.dx;
-            
+
             // 3. Constrain Pan Bounds
             currentWidth = baseWidth * _zoomLevel;
             double minPan = screenWidth - currentWidth;
             if (minPan > 0) minPan = 0; // Chart is smaller than screen
-            
+
             if (_panOffset > 0) _panOffset = 0; // Lock to left edge
             if (_panOffset < minPan) _panOffset = minPan; // Lock to right edge
           });
@@ -117,7 +115,10 @@ class _ZoomableLineChartState extends State<ZoomableLineChart> {
                             return touchedSpots.map((spot) {
                               return LineTooltipItem(
                                 spot.y.toStringAsFixed(0),
-                                theme.textTheme.labelSmall!.copyWith(color: theme.colorScheme.surface, fontWeight: FontWeight.bold),
+                                theme.textTheme.labelSmall!.copyWith(
+                                  color: theme.colorScheme.surface,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               );
                             }).toList();
                           },
@@ -128,14 +129,25 @@ class _ZoomableLineChartState extends State<ZoomableLineChart> {
                         drawVerticalLine: false,
                         horizontalInterval: widget.horizontalInterval,
                         getDrawingHorizontalLine: (value) {
-                          return FlLine(color: theme.colorScheme.onSurface.withValues(alpha: 0.1), strokeWidth: 1);
+                          return FlLine(
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.1,
+                            ),
+                            strokeWidth: 1,
+                          );
                         },
                       ),
                       titlesData: FlTitlesData(
                         show: true,
-                        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        leftTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
                         bottomTitles: AxisTitles(
                           sideTitles: SideTitles(
                             showTitles: true,
@@ -144,16 +156,32 @@ class _ZoomableLineChartState extends State<ZoomableLineChart> {
                             getTitlesWidget: (value, meta) {
                               int index = value.toInt();
                               if (index >= 0 && index < widget.labels.length) {
-                                double pixelsPerLabel = currentWidth / widget.labels.length;
+                                double pixelsPerLabel =
+                                    currentWidth / widget.labels.length;
                                 int step = 1;
-                                if (pixelsPerLabel < 15) step = 7;
-                                else if (pixelsPerLabel < 30) step = 3;
-                                else if (pixelsPerLabel < 50) step = 2;
-                                
-                                if (index == 0 || index == widget.labels.length - 1 || index % step == 0) {
+                                if (pixelsPerLabel < 15) {
+                                  step = 7;
+                                } else if (pixelsPerLabel < 30) {
+                                  step = 3;
+                                } else if (pixelsPerLabel < 50) {
+                                  step = 2;
+                                }
+
+                                if (index == 0 ||
+                                    index == widget.labels.length - 1 ||
+                                    index % step == 0) {
                                   return Padding(
                                     padding: const EdgeInsets.only(top: 8.0),
-                                    child: Text(widget.labels[index], style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant, fontSize: 10)),
+                                    child: Text(
+                                      widget.labels[index],
+                                      style: theme.textTheme.labelSmall
+                                          ?.copyWith(
+                                            color: theme
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                            fontSize: 10,
+                                          ),
+                                    ),
                                   );
                                 }
                               }
@@ -170,9 +198,17 @@ class _ZoomableLineChartState extends State<ZoomableLineChart> {
                           color: widget.incomeColor,
                           barWidth: 3,
                           isStrokeCapRound: true,
-                          dotData: FlDotData(show: true, getDotPainter: (spot, percent, barData, index) {
-                            return FlDotCirclePainter(radius: 4, color: widget.incomeColor, strokeWidth: 2, strokeColor: theme.colorScheme.surface);
-                          }),
+                          dotData: FlDotData(
+                            show: true,
+                            getDotPainter: (spot, percent, barData, index) {
+                              return FlDotCirclePainter(
+                                radius: 4,
+                                color: widget.incomeColor,
+                                strokeWidth: 2,
+                                strokeColor: theme.colorScheme.surface,
+                              );
+                            },
+                          ),
                           belowBarData: BarAreaData(
                             show: true,
                             color: widget.incomeColor.withValues(alpha: 0.1),
@@ -184,9 +220,17 @@ class _ZoomableLineChartState extends State<ZoomableLineChart> {
                           color: widget.expenseColor,
                           barWidth: 3,
                           isStrokeCapRound: true,
-                          dotData: FlDotData(show: true, getDotPainter: (spot, percent, barData, index) {
-                            return FlDotCirclePainter(radius: 4, color: widget.expenseColor, strokeWidth: 2, strokeColor: theme.colorScheme.surface);
-                          }),
+                          dotData: FlDotData(
+                            show: true,
+                            getDotPainter: (spot, percent, barData, index) {
+                              return FlDotCirclePainter(
+                                radius: 4,
+                                color: widget.expenseColor,
+                                strokeWidth: 2,
+                                strokeColor: theme.colorScheme.surface,
+                              );
+                            },
+                          ),
                           belowBarData: BarAreaData(
                             show: true,
                             color: widget.expenseColor.withValues(alpha: 0.1),

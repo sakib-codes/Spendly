@@ -7,6 +7,8 @@ class PrimaryButton extends StatelessWidget {
   final Color? color;
   final Color? textColor;
 
+  final double? width;
+
   const PrimaryButton({
     super.key,
     required this.text,
@@ -14,6 +16,7 @@ class PrimaryButton extends StatelessWidget {
     this.isLoading = false,
     this.color,
     this.textColor,
+    this.width = double.infinity,
   });
 
   @override
@@ -23,7 +26,7 @@ class PrimaryButton extends StatelessWidget {
     final buttonTextColor = textColor ?? theme.colorScheme.surface;
 
     return SizedBox(
-      width: double.infinity,
+      width: width,
       height: 56,
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(

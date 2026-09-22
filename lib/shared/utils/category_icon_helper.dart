@@ -10,14 +10,14 @@ class CategoryIconHelper {
     'entertainment': Icons.movie_rounded,
     'health': Icons.health_and_safety_rounded,
     'education': Icons.school_rounded,
-    
+
     // Default Incomes
     'salary': Icons.account_balance_wallet_rounded,
     'freelance': Icons.laptop_mac_rounded,
     'business': Icons.storefront_rounded,
     'investment': Icons.trending_up_rounded,
     'gift': Icons.card_giftcard_rounded,
-    
+
     // Additional general icons
     'other': Icons.category_rounded,
     'home': Icons.home_rounded,
@@ -42,14 +42,14 @@ class CategoryIconHelper {
     'entertainment': Colors.purple,
     'health': Colors.teal,
     'education': Colors.indigo,
-    
+
     // Default Incomes
     'salary': Colors.green,
     'freelance': Colors.cyan,
     'business': Colors.amber,
     'investment': Colors.deepPurple,
     'gift': Colors.lightGreen,
-    
+
     // Additional general icons
     'other': Colors.grey,
     'home': Colors.brown,
@@ -77,7 +77,11 @@ class CategoryIconHelper {
   };
 
   /// Returns a widget that is either an Image (if a custom icon exists) or a Material Icon.
-  static Widget getIconWidget(String iconKey, {double size = 24, Color? color}) {
+  static Widget getIconWidget(
+    String iconKey, {
+    double size = 24,
+    Color? color,
+  }) {
     if (_assetMap.containsKey(iconKey)) {
       return Transform.scale(
         scale: 1.4, // Scale up the PNGs visually without changing layout bounds

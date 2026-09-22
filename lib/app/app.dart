@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'router/app_router.dart';
+
 import 'package:spendly/shared/providers/theme_provider.dart';
+
 import 'theme/app_theme.dart';
 
 class SpendlyApp extends ConsumerWidget {

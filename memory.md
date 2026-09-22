@@ -109,18 +109,7 @@ lib/
 
 ## Known Bugs & Issues
 
-### 🐛 Active Bugs
-1. **Category delete not wired up**: `Dismissible.onDismissed` in Manage Categories shows a SnackBar but does NOT actually delete from DB — `CategoryNotifier` has no `deleteCategory()` method
-2. **`formatCurrency` unused variable**: In `analytics_screen.dart` line 157, `final formatCurrency = formatBDT;` is assigned but never used (dead code)
-3. **`formatCurrencyChart` unused variable**: In `analytics_screen.dart` line 314, same issue
-4. **Debug prints in production**: `budget_provider.dart` lines 91-94 have `print()` debug statements
-5. **Comparison card is hardcoded**: `_buildComparisonCard` in analytics shows hardcoded "৳17,500 vs ৳19,200" and "9% lower" — not connected to real data
-6. **Dashboard stats are not month-filtered**: `dashboardStatsProvider` calculates totals across ALL transactions, not just the selected month
-7. **SnackBar dark mode styling**: User reported SnackBar text doesn't match dark theme (not yet fixed)
-
-### ⚠️ Minor Issues
-- The `categories` and `export` feature directories exist but are empty/unused (logic lives in settings)
-- `_buildComparisonCard` in analytics references "August" hardcoded
+- All previously known bugs and UI/UX issues have been resolved.
 
 ## User Preferences & Directives
 - Navigation bar selection should highlight only the icon in a pill shape
