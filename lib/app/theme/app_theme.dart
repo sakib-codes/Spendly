@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'app_colors.dart';
 
 class AppTheme {
@@ -20,7 +21,9 @@ class AppTheme {
       contentTextStyle: TextStyle(color: AppColors.lightTextPrimary),
       actionTextColor: AppColors.incomeAccent,
       behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16))),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(16)),
+      ),
     ),
     useMaterial3: true,
   );
@@ -43,7 +46,9 @@ class AppTheme {
       contentTextStyle: TextStyle(color: AppColors.darkTextPrimary),
       actionTextColor: AppColors.incomeAccent,
       behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(16))),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(16)),
+      ),
     ),
     useMaterial3: true,
   );

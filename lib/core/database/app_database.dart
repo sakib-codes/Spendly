@@ -1,5 +1,6 @@
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
+
 import 'database_migrations.dart';
 
 class AppDatabase {
@@ -28,7 +29,7 @@ class AppDatabase {
       onConfigure: (db) async {
         // Enable foreign keys
         await db.execute('PRAGMA foreign_keys = ON');
-      }
+      },
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 class GlassCard extends StatelessWidget {
@@ -22,7 +23,7 @@ class GlassCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final radius = borderRadius ?? BorderRadius.circular(24);
-    
+
     return Container(
       width: width,
       height: height,
@@ -33,7 +34,7 @@ class GlassCard extends StatelessWidget {
             color: Theme.of(context).shadowColor.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
-          )
+          ),
         ],
       ),
       child: ClipRRect(
@@ -46,7 +47,8 @@ class GlassCard extends StatelessWidget {
               color: color ?? Theme.of(context).colorScheme.surfaceContainer,
               borderRadius: radius,
               border: Border.all(
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+                color: Theme.of(context).colorScheme.onSurface
+                    .withValues(alpha: 0.05),
                 width: 1,
               ),
             ),

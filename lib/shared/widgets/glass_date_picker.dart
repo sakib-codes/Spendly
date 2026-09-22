@@ -38,10 +38,9 @@ class GlassDatePicker extends StatefulWidget {
         return FadeTransition(
           opacity: animation,
           child: ScaleTransition(
-            scale: Tween<double>(begin: 0.95, end: 1.0).animate(CurvedAnimation(
-              parent: animation,
-              curve: Curves.easeOutCubic,
-            )),
+            scale: Tween<double>(begin: 0.95, end: 1.0).animate(
+              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+            ),
             child: child,
           ),
         );
@@ -89,51 +88,67 @@ class _GlassDatePickerState extends State<GlassDatePicker> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     final days = <Widget>[];
     final offset = _firstWeekdayOffset;
-    
+
     for (int i = 0; i < offset; i++) {
       days.add(const SizedBox.shrink());
     }
-    
+
     final totalDays = _daysInMonth;
     final now = DateTime.now();
-    
+
     for (int i = 1; i <= totalDays; i++) {
       final date = DateTime(_currentMonth.year, _currentMonth.month, i);
-      final isSelected = date.year == _selectedDate.year && 
-                         date.month == _selectedDate.month && 
-                         date.day == _selectedDate.day;
-      final isToday = date.year == now.year && 
-                      date.month == now.month && 
-                      date.day == now.day;
-      
+      final isSelected =
+          date.year == _selectedDate.year &&
+          date.month == _selectedDate.month &&
+          date.day == _selectedDate.day;
+      final isToday =
+          date.year == now.year &&
+          date.month == now.month &&
+          date.day == now.day;
+
       bool isDisabled = false;
-      if (widget.firstDate != null && date.isBefore(widget.firstDate!)) isDisabled = true;
-      if (widget.lastDate != null && date.isAfter(widget.lastDate!)) isDisabled = true;
+      if (widget.firstDate != null && date.isBefore(widget.firstDate!)) {
+        isDisabled = true;
+      }
+      if (widget.lastDate != null && date.isAfter(widget.lastDate!)) {
+        isDisabled = true;
+      }
 
       days.add(
         GestureDetector(
-          onTap: isDisabled ? null : () {
-            setState(() => _selectedDate = date);
-          },
+          onTap: isDisabled
+              ? null
+              : () {
+                  setState(() => _selectedDate = date);
+                },
           child: Container(
             margin: const EdgeInsets.all(2),
             decoration: BoxDecoration(
-              color: isSelected ? theme.colorScheme.primary : (isToday ? theme.colorScheme.primary.withValues(alpha: 0.1) : Colors.transparent),
+              color: isSelected
+                  ? theme.colorScheme.primary
+                  : (isToday
+                        ? theme.colorScheme.primary.withValues(alpha: 0.1)
+                        : Colors.transparent),
               shape: BoxShape.circle,
             ),
             alignment: Alignment.center,
             child: Text(
               i.toString(),
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: isDisabled 
+                color: isDisabled
                     ? theme.colorScheme.onSurface.withValues(alpha: 0.3)
                     : isSelected
-                        ? theme.colorScheme.onPrimary
-                        : (isToday ? theme.colorScheme.primary : theme.colorScheme.onSurface),
-                fontWeight: isSelected || isToday ? FontWeight.bold : FontWeight.normal,
+                    ? theme.colorScheme.onPrimary
+                    : (isToday
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurface),
+                fontWeight: isSelected || isToday
+                    ? FontWeight.bold
+                    : FontWeight.normal,
               ),
             ),
           ),
@@ -157,7 +172,9 @@ class _GlassDatePickerState extends State<GlassDatePicker> {
                   alignment: Alignment.centerLeft,
                   child: Text(
                     'Select date',
-                    style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -165,17 +182,21 @@ class _GlassDatePickerState extends State<GlassDatePicker> {
                   alignment: Alignment.centerLeft,
                   child: Text(
                     DateFormat('EEE, MMM d').format(_selectedDate),
-                    style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),
-                
+
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       DateFormat('MMMM yyyy').format(_currentMonth),
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     Row(
                       children: [
@@ -183,7 +204,8 @@ class _GlassDatePickerState extends State<GlassDatePicker> {
                           onPressed: _previousMonth,
                           icon: const Icon(Icons.chevron_left_rounded),
                           style: IconButton.styleFrom(
-                            backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.05),
+                            backgroundColor: theme.colorScheme.onSurface
+                                .withValues(alpha: 0.05),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -191,7 +213,8 @@ class _GlassDatePickerState extends State<GlassDatePicker> {
                           onPressed: _nextMonth,
                           icon: const Icon(Icons.chevron_right_rounded),
                           style: IconButton.styleFrom(
-                            backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.05),
+                            backgroundColor: theme.colorScheme.onSurface
+                                .withValues(alpha: 0.05),
                           ),
                         ),
                       ],
@@ -199,20 +222,27 @@ class _GlassDatePickerState extends State<GlassDatePicker> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                
+
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: weekDays.map((day) => SizedBox(
-                    width: 32,
-                    child: Text(
-                      day,
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant, fontWeight: FontWeight.bold),
-                    ),
-                  )).toList(),
+                  children: weekDays
+                      .map(
+                        (day) => SizedBox(
+                          width: 32,
+                          child: Text(
+                            day,
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
                 ),
                 const SizedBox(height: 8),
-                
+
                 GridView.count(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
@@ -221,15 +251,20 @@ class _GlassDatePickerState extends State<GlassDatePicker> {
                   crossAxisSpacing: 4,
                   children: days,
                 ),
-                
+
                 const SizedBox(height: 24),
-                
+
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: Text('Cancel', style: TextStyle(color: theme.colorScheme.onSurfaceVariant)),
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 8),
                     SizedBox(

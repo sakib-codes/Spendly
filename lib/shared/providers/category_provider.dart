@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../domain/entities/category.dart';
 import 'repository_providers.dart';
+
 import 'dart:async';
 
 class CategoryNotifier extends AsyncNotifier<List<Category>> {
@@ -27,6 +29,7 @@ class CategoryNotifier extends AsyncNotifier<List<Category>> {
   }
 }
 
-final categoryProvider = AsyncNotifierProvider<CategoryNotifier, List<Category>>(() {
-  return CategoryNotifier();
-});
+final categoryProvider =
+    AsyncNotifierProvider<CategoryNotifier, List<Category>>(() {
+      return CategoryNotifier();
+    });

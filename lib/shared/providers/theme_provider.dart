@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spendly/shared/providers/preferences_provider.dart';
 
-final themeModeProvider = NotifierProvider<ThemeModeNotifier, ThemeMode>(ThemeModeNotifier.new);
+final themeModeProvider = NotifierProvider<ThemeModeNotifier, ThemeMode>(
+  ThemeModeNotifier.new,
+);
 
 class ThemeModeNotifier extends Notifier<ThemeMode> {
   @override
@@ -11,13 +13,16 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
     final themeStr = prefs.getString('themeMode') ?? 'dark';
     return _fromString(themeStr);
   }
-  
+
   ThemeMode _fromString(String str) {
     switch (str) {
-      case 'light': return ThemeMode.light;
-      case 'system': return ThemeMode.system;
-      case 'dark': 
-      default: return ThemeMode.dark;
+      case 'light':
+        return ThemeMode.light;
+      case 'system':
+        return ThemeMode.system;
+      case 'dark':
+      default:
+        return ThemeMode.dark;
     }
   }
 

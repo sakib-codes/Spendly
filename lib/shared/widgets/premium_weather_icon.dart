@@ -24,7 +24,8 @@ class PremiumWeatherIcon extends StatelessWidget {
       glowColor = const Color(0xFFFF8C00);
     } else if (weatherCode == 1 || weatherCode == 2) {
       // Partly cloudy
-      iconData = Icons.cloud_rounded; // partly_cloudy could be used if available
+      iconData =
+          Icons.cloud_rounded; // partly_cloudy could be used if available
       gradientColors = [const Color(0xFFFFD700), const Color(0xFF90A4AE)];
       glowColor = const Color(0xFF90A4AE);
     } else if (weatherCode == 3) {
@@ -37,12 +38,14 @@ class PremiumWeatherIcon extends StatelessWidget {
       iconData = Icons.foggy;
       gradientColors = [const Color(0xFFCFD8DC), const Color(0xFF90A4AE)];
       glowColor = const Color(0xFF90A4AE);
-    } else if ((weatherCode >= 51 && weatherCode <= 67) || (weatherCode >= 80 && weatherCode <= 82)) {
+    } else if ((weatherCode >= 51 && weatherCode <= 67) ||
+        (weatherCode >= 80 && weatherCode <= 82)) {
       // Rain / Drizzle
       iconData = Icons.water_drop_rounded;
       gradientColors = [const Color(0xFF4FC3F7), const Color(0xFF0288D1)];
       glowColor = const Color(0xFF0288D1);
-    } else if ((weatherCode >= 71 && weatherCode <= 77) || (weatherCode >= 85 && weatherCode <= 86)) {
+    } else if ((weatherCode >= 71 && weatherCode <= 77) ||
+        (weatherCode >= 85 && weatherCode <= 86)) {
       // Snow
       iconData = Icons.ac_unit_rounded;
       gradientColors = [const Color(0xFFE1F5FE), const Color(0xFF81D4FA)];
@@ -94,7 +97,7 @@ class PremiumWeatherIcon extends StatelessWidget {
               color: Colors.black.withValues(alpha: 0.2),
               blurRadius: 4,
               offset: const Offset(0, 2),
-            )
+            ),
           ],
         ),
       ),

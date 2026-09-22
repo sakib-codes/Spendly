@@ -21,8 +21,8 @@ class RoutePaths {
   static const String signup = '/signup';
   static const String home = '/home';
   static const String transactions = '/transactions';
-  static const String addTransaction = 'add';
-  static const String transactionDetails = ':id';
+  static const String addTransaction = '/add';
+  static const String transactionDetails = '/transactions/:id';
   static const String analytics = '/analytics';
   static const String categories = '/categories';
   static const String addCategory = 'add';

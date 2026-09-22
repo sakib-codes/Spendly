@@ -2,6 +2,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:spendly/core/database/app_database.dart';
 import 'package:spendly/core/database/database_tables.dart';
 import 'package:spendly/domain/entities/budget.dart';
+
 import 'budget_repository.dart';
 
 class BudgetRepositoryImpl implements BudgetRepository {
@@ -28,38 +29,33 @@ class BudgetRepositoryImpl implements BudgetRepository {
   @override
   Future<void> saveBudget(Budget budget) async {
     final db = await AppDatabase.instance;
-    
+
     // Check if budget already exists for this category/month/year
     final List<Map<String, dynamic>> existing = await db.query(
       DatabaseTables.budgets,
-      where: '${BudgetFields.categoryId} = ? AND ${BudgetFields.month} = ? AND ${BudgetFields.year} = ?',
+      where:
+          '${BudgetFields.categoryId} = ? AND ${BudgetFields.month} = ? AND ${BudgetFields.year} = ?',
       whereArgs: [budget.categoryId, budget.month, budget.year],
     );
-    
+
     if (existing.isNotEmpty) {
       // Update
       final existingId = existing.first[BudgetFields.id];
       await db.update(
         DatabaseTables.budgets,
-        {
-          BudgetFields.amount: budget.amount,
-        },
+        {BudgetFields.amount: budget.amount},
         where: '${BudgetFields.id} = ?',
         whereArgs: [existingId],
       );
     } else {
       // Insert
-      await db.insert(
-        DatabaseTables.budgets,
-        {
-          BudgetFields.id: budget.id,
-          BudgetFields.categoryId: budget.categoryId,
-          BudgetFields.amount: budget.amount,
-          BudgetFields.month: budget.month,
-          BudgetFields.year: budget.year,
-        },
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
+      await db.insert(DatabaseTables.budgets, {
+        BudgetFields.id: budget.id,
+        BudgetFields.categoryId: budget.categoryId,
+        BudgetFields.amount: budget.amount,
+        BudgetFields.month: budget.month,
+        BudgetFields.year: budget.year,
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
     }
   }
 

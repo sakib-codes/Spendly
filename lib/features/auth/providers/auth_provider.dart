@@ -1,15 +1,12 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
-enum AuthStatus {
-  initial,
-  authenticated,
-  unauthenticated,
-}
+enum AuthStatus { initial, authenticated, unauthenticated }
 
 class AuthNotifier extends Notifier<AuthStatus> {
   StreamSubscription<User?>? _authStateSubscription;
@@ -23,24 +20,26 @@ class AuthNotifier extends Notifier<AuthStatus> {
   @override
   AuthStatus build() {
     _authStateSubscription?.cancel();
-    _authStateSubscription = FirebaseAuth.instance.authStateChanges().listen((user) {
+    _authStateSubscription = FirebaseAuth.instance.authStateChanges().listen((
+      user,
+    ) {
       if (user != null) {
         state = AuthStatus.authenticated;
       } else {
         state = AuthStatus.unauthenticated;
       }
     });
-    
-    return FirebaseAuth.instance.currentUser != null 
-        ? AuthStatus.authenticated 
+
+    return FirebaseAuth.instance.currentUser != null
+        ? AuthStatus.authenticated
         : AuthStatus.initial;
   }
 
   Future<void> login(String email, String password) async {
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email, 
-        password: password
+        email: email,
+        password: password,
       );
     } on FirebaseAuthException catch (e) {
       throw e.message ?? 'An unknown error occurred during login.';
@@ -51,10 +50,8 @@ class AuthNotifier extends Notifier<AuthStatus> {
 
   Future<void> signup(String name, String email, String password) async {
     try {
-      final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email, 
-        password: password
-      );
+      final userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(email: email, password: password);
       await userCredential.user?.updateDisplayName(name);
     } on FirebaseAuthException catch (e) {
       throw e.message ?? 'An unknown error occurred during signup.';
@@ -71,11 +68,13 @@ class AuthNotifier extends Notifier<AuthStatus> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw 'User not logged in';
-      
-      final storageRef = FirebaseStorage.instance.ref().child('profile_pictures/${user.uid}.jpg');
+
+      final storageRef = FirebaseStorage.instance.ref().child(
+        'profile_pictures/${user.uid}.jpg',
+      );
       await storageRef.putFile(imageFile);
       final downloadUrl = await storageRef.getDownloadURL();
-      
+
       await user.updatePhotoURL(downloadUrl);
       // Force a state update to rebuild the UI
       state = AuthStatus.authenticated;
@@ -120,16 +119,22 @@ class AuthNotifier extends Notifier<AuthStatus> {
     }
   }
 
-  Future<void> changePasswordWithReauth(String oldPassword, String newPassword) async {
+  Future<void> changePasswordWithReauth(
+    String oldPassword,
+    String newPassword,
+  ) async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw 'User not logged in';
-      
+
       final email = user.email;
       if (email == null) throw 'No email associated with this account';
 
       // Re-authenticate
-      final credential = EmailAuthProvider.credential(email: email, password: oldPassword);
+      final credential = EmailAuthProvider.credential(
+        email: email,
+        password: oldPassword,
+      );
       await user.reauthenticateWithCredential(credential);
 
       // Update password
@@ -149,13 +154,15 @@ class AuthNotifier extends Notifier<AuthStatus> {
       final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
       if (googleUser == null) return false;
 
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
       final AuthCredential credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      final UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+      final UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithCredential(credential);
       return userCredential.additionalUserInfo?.isNewUser ?? false;
     } on FirebaseAuthException catch (e) {
       throw e.message ?? 'An unknown error occurred during Google sign-in.';

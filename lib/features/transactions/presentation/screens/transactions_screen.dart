@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spendly/app/theme/app_colors.dart';
 import 'package:spendly/shared/widgets/glass_card.dart';
-import 'package:spendly/shared/widgets/glass_dialog.dart';
+
 import 'package:spendly/shared/providers/transaction_provider.dart';
 import 'package:spendly/shared/providers/category_provider.dart';
 import 'package:spendly/domain/entities/transaction.dart';
-import 'package:spendly/domain/entities/category.dart';
+
 import 'package:spendly/shared/utils/category_icon_helper.dart';
 import 'package:spendly/app/router/route_names.dart';
 import 'package:go_router/go_router.dart';
@@ -55,7 +55,11 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           children: [
             Align(
               alignment: Alignment.centerLeft,
-              child: Text('Transactions', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
+              child: Text(
+                'Transactions',
+                style: Theme.of(context).textTheme.headlineMedium
+                    ?.copyWith(fontWeight: FontWeight.bold),
+              ),
             ),
             const SizedBox(height: 24),
             _buildSearchBar(context, ref),
@@ -63,17 +67,29 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             transactionsState.when(
               data: (allTransactions) {
                 final selectedMonth = ref.watch(selectedMonthProvider);
-                var transactions = allTransactions.where((t) => t.date.year == selectedMonth.year && t.date.month == selectedMonth.month).toList();
-                
+                var transactions = allTransactions
+                    .where(
+                      (t) =>
+                          t.date.year == selectedMonth.year &&
+                          t.date.month == selectedMonth.month,
+                    )
+                    .toList();
+
                 if (_filterType != null) {
-                  transactions = transactions.where((t) => t.type == _filterType).toList();
+                  transactions = transactions
+                      .where((t) => t.type == _filterType)
+                      .toList();
                 }
 
                 if (_searchQuery.isNotEmpty) {
-                  transactions = transactions.where((t) => 
-                    t.title.toLowerCase().contains(_searchQuery) || 
-                    (t.note?.toLowerCase().contains(_searchQuery) ?? false)
-                  ).toList();
+                  transactions = transactions
+                      .where(
+                        (t) =>
+                            t.title.toLowerCase().contains(_searchQuery) ||
+                            (t.note?.toLowerCase().contains(_searchQuery) ??
+                                false),
+                      )
+                      .toList();
                 }
 
                 if (transactions.isEmpty) {
@@ -107,16 +123,20 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 24.0),
                       child: _buildDateGroup(
-                        context, 
-                        entry.key.toUpperCase(), 
+                        context,
+                        entry.key.toUpperCase(),
                         entry.value.map((t) {
-                          final amountPrefix = t.type == TransactionType.expense ? '-' : '+';
-                          
+                          final amountPrefix = t.type == TransactionType.expense
+                              ? '-'
+                              : '+';
+
                           String categoryName = 'Unknown';
                           String categoryIconKey = 'other';
                           categoriesState.maybeWhen(
                             data: (categories) {
-                              final cat = categories.where((c) => c.id == t.categoryId).firstOrNull;
+                              final cat = categories
+                                  .where((c) => c.id == t.categoryId)
+                                  .firstOrNull;
                               if (cat != null) {
                                 categoryName = cat.name;
                                 categoryIconKey = cat.icon;
@@ -124,17 +144,15 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                             },
                             orElse: () {},
                           );
-                          
-
 
                           return _buildTransactionTile(
-                            context, 
+                            context,
                             ref,
-                            t, 
-                            categoryName, 
-                            DateFormat('h:mm a').format(t.date), 
-                            '$amountPrefix${formatBDT(t.amount)}', 
-                            categoryIconKey
+                            t,
+                            categoryName,
+                            DateFormat('h:mm a').format(t.date),
+                            '$amountPrefix${formatBDT(t.amount)}',
+                            categoryIconKey,
                           );
                         }).toList(),
                       ),
@@ -162,22 +180,41 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           IconButton(
-            icon: Icon(Icons.chevron_left_rounded, color: theme.colorScheme.onSurfaceVariant),
-            onPressed: () => ref.read(selectedMonthProvider.notifier).setMonth(DateTime(selectedMonth.year, selectedMonth.month - 1)),
-          ),
-          const SizedBox(width: 16),
-          Text(
-            currentMonthYear.toUpperCase(), 
-            style: theme.textTheme.titleSmall?.copyWith(
+            icon: Icon(
+              Icons.chevron_left_rounded,
               color: theme.colorScheme.onSurface,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.5,
-            )
+            ),
+            onPressed: () => ref
+                .read(selectedMonthProvider.notifier)
+                .setMonth(
+                  DateTime(selectedMonth.year, selectedMonth.month - 1),
+                ),
           ),
-          const SizedBox(width: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              currentMonthYear.toUpperCase(),
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ),
           IconButton(
-            icon: Icon(Icons.chevron_right_rounded, color: theme.colorScheme.onSurfaceVariant),
-            onPressed: () => ref.read(selectedMonthProvider.notifier).setMonth(DateTime(selectedMonth.year, selectedMonth.month + 1)),
+            icon: Icon(
+              Icons.chevron_right_rounded,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            onPressed: () => ref
+                .read(selectedMonthProvider.notifier)
+                .setMonth(
+                  DateTime(selectedMonth.year, selectedMonth.month + 1),
+                ),
           ),
         ],
       ),
@@ -194,14 +231,19 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             height: 56,
             child: Row(
               children: [
-                Icon(Icons.search_rounded, color: theme.colorScheme.onSurfaceVariant),
+                Icon(
+                  Icons.search_rounded,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
                       hintText: 'Search description...',
-                      hintStyle: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                      hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                       border: InputBorder.none,
                     ),
                   ),
@@ -223,124 +265,230 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   builder: (context, setModalState) {
                     return GlassCard(
                       padding: EdgeInsets.zero,
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(32),
+                      ),
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(24, 24, 24, 48),
                         child: SingleChildScrollView(
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Center(
-                              child: Container(
-                                width: 40, height: 4,
-                                decoration: BoxDecoration(color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4), borderRadius: BorderRadius.circular(2)),
+                            children: [
+                              Center(
+                                child: Container(
+                                  width: 40,
+                                  height: 4,
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.onSurfaceVariant
+                                        .withValues(alpha: 0.4),
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 24),
-                            Text('Filters', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold), textAlign: TextAlign.center),
-                            const SizedBox(height: 24),
-                            
-                            Text('Month', style: theme.textTheme.labelMedium?.copyWith(letterSpacing: 1.2, color: theme.colorScheme.onSurfaceVariant)),
-                            const SizedBox(height: 8),
-                            GlassCard(
-                              padding: const EdgeInsets.symmetric(vertical: 4),
-                              child: _buildMonthSwitcher(context, ref),
-                            ),
-                            const SizedBox(height: 24),
+                              const SizedBox(height: 24),
+                              Text(
+                                'Filters',
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 24),
 
-                            Text('Type', style: theme.textTheme.labelMedium?.copyWith(letterSpacing: 1.2, color: theme.colorScheme.onSurfaceVariant)),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                Expanded(child: _buildFilterChip(context, 'All', _filterType == null, () {
-                                  setModalState(() => _filterType = null);
-                                  setState(() {});
-                                })),
-                                const SizedBox(width: 8),
-                                Expanded(child: _buildFilterChip(context, 'Income', _filterType == TransactionType.income, () {
-                                  setModalState(() => _filterType = TransactionType.income);
-                                  setState(() {});
-                                }, activeColor: AppColors.incomeAccent)),
-                                const SizedBox(width: 8),
-                                Expanded(child: _buildFilterChip(context, 'Expense', _filterType == TransactionType.expense, () {
-                                  setModalState(() => _filterType = TransactionType.expense);
-                                  setState(() {});
-                                }, activeColor: AppColors.expenseAccent)),
-                              ],
-                            ),
-                            const SizedBox(height: 24),
+                              Text(
+                                'Month',
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  letterSpacing: 1.2,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              GlassCard(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 4,
+                                ),
+                                child: _buildMonthSwitcher(context, ref),
+                              ),
+                              const SizedBox(height: 24),
 
-                            Text('Sort By', style: theme.textTheme.labelMedium?.copyWith(letterSpacing: 1.2, color: theme.colorScheme.onSurfaceVariant)),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                Expanded(child: _buildFilterChip(context, 'Newest First', _sortBy == 'date_desc', () {
-                                  setModalState(() => _sortBy = 'date_desc');
+                              Text(
+                                'Type',
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  letterSpacing: 1.2,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildFilterChip(
+                                      context,
+                                      'All',
+                                      _filterType == null,
+                                      () {
+                                        setModalState(() => _filterType = null);
+                                        setState(() {});
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: _buildFilterChip(
+                                      context,
+                                      'Income',
+                                      _filterType == TransactionType.income,
+                                      () {
+                                        setModalState(
+                                          () => _filterType =
+                                              TransactionType.income,
+                                        );
+                                        setState(() {});
+                                      },
+                                      activeColor: AppColors.incomeAccent,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: _buildFilterChip(
+                                      context,
+                                      'Expense',
+                                      _filterType == TransactionType.expense,
+                                      () {
+                                        setModalState(
+                                          () => _filterType =
+                                              TransactionType.expense,
+                                        );
+                                        setState(() {});
+                                      },
+                                      activeColor: AppColors.expenseAccent,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 24),
+
+                              Text(
+                                'Sort By',
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  letterSpacing: 1.2,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildFilterChip(
+                                      context,
+                                      'Newest First',
+                                      _sortBy == 'date_desc',
+                                      () {
+                                        setModalState(
+                                          () => _sortBy = 'date_desc',
+                                        );
+                                        setState(() {});
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: _buildFilterChip(
+                                      context,
+                                      'Oldest First',
+                                      _sortBy == 'date_asc',
+                                      () {
+                                        setModalState(
+                                          () => _sortBy = 'date_asc',
+                                        );
+                                        setState(() {});
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildFilterChip(
+                                      context,
+                                      'Highest Amount',
+                                      _sortBy == 'amount_desc',
+                                      () {
+                                        setModalState(
+                                          () => _sortBy = 'amount_desc',
+                                        );
+                                        setState(() {});
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: _buildFilterChip(
+                                      context,
+                                      'Lowest Amount',
+                                      _sortBy == 'amount_asc',
+                                      () {
+                                        setModalState(
+                                          () => _sortBy = 'amount_asc',
+                                        );
+                                        setState(() {});
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 32),
+                              GestureDetector(
+                                onTap: () {
+                                  setModalState(() {
+                                    _filterType = null;
+                                    _sortBy = 'date_desc';
+                                    ref
+                                        .read(selectedMonthProvider.notifier)
+                                        .setMonth(DateTime.now());
+                                  });
                                   setState(() {});
-                                })),
-                                const SizedBox(width: 8),
-                                Expanded(child: _buildFilterChip(context, 'Oldest First', _sortBy == 'date_asc', () {
-                                  setModalState(() => _sortBy = 'date_asc');
-                                  setState(() {});
-                                })),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                Expanded(child: _buildFilterChip(context, 'Highest Amount', _sortBy == 'amount_desc', () {
-                                  setModalState(() => _sortBy = 'amount_desc');
-                                  setState(() {});
-                                })),
-                                const SizedBox(width: 8),
-                                Expanded(child: _buildFilterChip(context, 'Lowest Amount', _sortBy == 'amount_asc', () {
-                                  setModalState(() => _sortBy = 'amount_asc');
-                                  setState(() {});
-                                })),
-                              ],
-                            ),
-                            
-                            const SizedBox(height: 32),
-                            GestureDetector(
-                              onTap: () {
-                                setModalState(() {
-                                  _filterType = null;
-                                  _sortBy = 'date_desc';
-                                  ref.read(selectedMonthProvider.notifier).setMonth(DateTime.now());
-                                });
-                                setState(() {});
-                                Navigator.pop(context);
-                              },
-                              child: GlassCard(
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                child: Center(
-                                  child: Text(
-                                    'Clear All Filters',
-                                    style: theme.textTheme.titleMedium?.copyWith(
-                                      color: theme.colorScheme.error,
-                                      fontWeight: FontWeight.bold,
+                                  Navigator.pop(context);
+                                },
+                                child: GlassCard(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      'Clear All Filters',
+                                      style: theme.textTheme.titleMedium
+                                          ?.copyWith(
+                                            color: theme.colorScheme.error,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                     ),
                                   ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                  );
-                },
-              );
-            },
-          );
-        },
+                    );
+                  },
+                );
+              },
+            );
+          },
           child: GlassCard(
             padding: EdgeInsets.zero,
             height: 56,
             width: 56,
             child: Center(
-              child: Icon(Icons.tune_rounded, color: theme.colorScheme.onSurface),
+              child: Icon(
+                Icons.tune_rounded,
+                color: theme.colorScheme.onSurface,
+              ),
             ),
           ),
         ),
@@ -348,10 +496,16 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     );
   }
 
-  Widget _buildFilterChip(BuildContext context, String label, bool isSelected, VoidCallback onTap, {Color? activeColor}) {
+  Widget _buildFilterChip(
+    BuildContext context,
+    String label,
+    bool isSelected,
+    VoidCallback onTap, {
+    Color? activeColor,
+  }) {
     final theme = Theme.of(context);
     final color = activeColor ?? theme.colorScheme.primary;
-    
+
     return GestureDetector(
       onTap: onTap,
       child: GlassCard(
@@ -362,7 +516,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             label,
             textAlign: TextAlign.center,
             style: theme.textTheme.labelLarge?.copyWith(
-              color: isSelected ? Colors.white : theme.colorScheme.onSurfaceVariant,
+              color: isSelected
+                  ? Colors.white
+                  : theme.colorScheme.onSurfaceVariant,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
             ),
           ),
@@ -371,7 +527,11 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     );
   }
 
-  Widget _buildDateGroup(BuildContext context, String dateLabel, List<Widget> children) {
+  Widget _buildDateGroup(
+    BuildContext context,
+    String dateLabel,
+    List<Widget> children,
+  ) {
     final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -391,7 +551,15 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     );
   }
 
-  Widget _buildTransactionTile(BuildContext context, WidgetRef ref, Transaction t, String category, String date, String amount, String iconKey) {
+  Widget _buildTransactionTile(
+    BuildContext context,
+    WidgetRef ref,
+    Transaction t,
+    String category,
+    String date,
+    String amount,
+    String iconKey,
+  ) {
     final theme = Theme.of(context);
     final color = CategoryIconHelper.getColor(iconKey);
 
@@ -423,7 +591,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         );
       },
       child: GestureDetector(
-        onTap: () => context.pushNamed(RouteNames.transactionDetails, pathParameters: {'id': t.id}),
+        onTap: () => context.pushNamed(
+          RouteNames.transactionDetails,
+          pathParameters: {'id': t.id},
+        ),
         behavior: HitTestBehavior.opaque,
         child: Container(
           margin: const EdgeInsets.only(bottom: 12),
@@ -437,7 +608,11 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     color: color.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: CategoryIconHelper.getIconWidget(iconKey, size: 24, color: color),
+                  child: CategoryIconHelper.getIconWidget(
+                    iconKey,
+                    size: 24,
+                    color: color,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -445,22 +620,34 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        t.title, 
-                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                        t.title,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '$category • $date', 
-                        style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                        '$category • $date',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
                 ),
-                Text(amount, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: t.type == TransactionType.income ? AppColors.incomeAccent : AppColors.expenseAccent)),
+                Text(
+                  amount,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: t.type == TransactionType.income
+                        ? AppColors.incomeAccent
+                        : AppColors.expenseAccent,
+                  ),
+                ),
               ],
             ),
           ),

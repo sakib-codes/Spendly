@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../domain/entities/transaction.dart';
 import 'repository_providers.dart';
+
 import 'dart:async';
 
 class TransactionNotifier extends AsyncNotifier<List<Transaction>> {
@@ -43,6 +45,7 @@ class TransactionNotifier extends AsyncNotifier<List<Transaction>> {
   }
 }
 
-final transactionProvider = AsyncNotifierProvider<TransactionNotifier, List<Transaction>>(() {
-  return TransactionNotifier();
-});
+final transactionProvider =
+    AsyncNotifierProvider<TransactionNotifier, List<Transaction>>(() {
+      return TransactionNotifier();
+    });

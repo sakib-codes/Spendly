@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
 
@@ -35,28 +36,28 @@ class WeatherService {
 
     if (permission == LocationPermission.deniedForever) {
       throw Exception('Location permissions are permanently denied.');
-    } 
+    }
 
     // Fetch position with high accuracy to ensure it picks up emulator changes.
     Position position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 5),
-        ),
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        timeLimit: Duration(seconds: 5),
+      ),
     );
-    
+
     // Fetch weather from open-meteo (no API key required)
-    final url = Uri.parse('https://api.open-meteo.com/v1/forecast?latitude=${position.latitude}&longitude=${position.longitude}&current_weather=true');
+    final url = Uri.parse(
+      'https://api.open-meteo.com/v1/forecast?latitude=${position.latitude}&longitude=${position.longitude}&current_weather=true',
+    );
     final response = await http.get(url);
-    
+
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       final weatherCode = data['current_weather']['weathercode'] as int;
-      final temperature = (data['current_weather']['temperature'] as num).toDouble();
+      final temperature = (data['current_weather']['temperature'] as num)
+          .toDouble();
       final condition = _getConditionFromCode(weatherCode);
-
-      print('🌦️ Real-time Weather Fetched for Lat: ${position.latitude}, Lon: ${position.longitude}');
-      print('🌦️ Result: $temperature°C, $condition');
 
       return WeatherInfo(
         temperature: temperature,

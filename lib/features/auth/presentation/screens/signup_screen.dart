@@ -1,11 +1,14 @@
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lottie/lottie.dart';
+
 import '../../../../app/router/route_names.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
+import '../../../../shared/widgets/primary_button.dart';
 
 class SignupScreen extends ConsumerStatefulWidget {
   const SignupScreen({super.key});
@@ -14,7 +17,8 @@ class SignupScreen extends ConsumerStatefulWidget {
   ConsumerState<SignupScreen> createState() => _SignupScreenState();
 }
 
-class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerProviderStateMixin {
+class _SignupScreenState extends ConsumerState<SignupScreen>
+    with SingleTickerProviderStateMixin {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -47,16 +51,19 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
     final email = _emailController.text;
     final password = _passwordController.text;
     if (name.isEmpty || email.isEmpty || password.isEmpty) return;
-    
+
     setState(() => _isSignupLoading = true);
-    
+
     try {
       await ref.read(authProvider.notifier).signup(name, email, password);
       if (mounted) context.go(RoutePaths.home);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: AppColors.expenseAccent),
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: AppColors.expenseAccent,
+          ),
         );
       }
     } finally {
@@ -67,7 +74,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
   void _signInWithGoogle() async {
     setState(() => _isGoogleLoading = true);
     try {
-      final isNewUser = await ref.read(authProvider.notifier).signInWithGoogle();
+      final isNewUser = await ref
+          .read(authProvider.notifier)
+          .signInWithGoogle();
       if (mounted) {
         if (isNewUser) {
           context.go(RoutePaths.setPassword);
@@ -78,7 +87,10 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: AppColors.expenseAccent),
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: AppColors.expenseAccent,
+          ),
         );
       }
     } finally {
@@ -102,7 +114,10 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
             child: Container(
               width: 300,
               height: 300,
-              decoration: BoxDecoration(color: AppColors.incomeAccent.withValues(alpha: 0.15), shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                color: AppColors.incomeAccent.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
             ),
           ),
           Positioned(
@@ -111,7 +126,10 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
             child: Container(
               width: 300,
               height: 300,
-              decoration: BoxDecoration(color: AppColors.expenseAccent.withValues(alpha: 0.15), shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                color: AppColors.expenseAccent.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
             ),
           ),
           Positioned.fill(
@@ -120,14 +138,19 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
               child: Container(color: Colors.transparent),
             ),
           ),
-          
+
           SafeArea(
             child: LayoutBuilder(
               builder: (context, constraints) {
                 return SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 8,
+                  ),
                   child: ConstrainedBox(
-                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
                     child: IntrinsicHeight(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -138,7 +161,9 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
                             tag: 'app_logo',
                             child: Container(
                               decoration: BoxDecoration(
-                                color: theme.colorScheme.onSurface.withValues(alpha: 0.04),
+                                color: theme.colorScheme.onSurface.withValues(
+                                  alpha: 0.04,
+                                ),
                                 shape: BoxShape.circle,
                               ),
                               padding: const EdgeInsets.all(4),
@@ -152,18 +177,44 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
                             ),
                           ),
                           SizedBox(height: size.height * 0.015),
-                          Text('Create Account', style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
+                          Text(
+                            'Create Account',
+                            style: theme.textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                           SizedBox(height: size.height * 0.01),
-                          Text('Sign up to get started', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                          Text(
+                            'Sign up to get started',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
                           SizedBox(height: size.height * 0.025),
-                          
-                          _buildTextField(context, 'Name', Icons.person_rounded, _nameController),
+
+                          _buildTextField(
+                            context,
+                            'Name',
+                            Icons.person_rounded,
+                            _nameController,
+                          ),
                           SizedBox(height: size.height * 0.015),
-                          _buildTextField(context, 'Email', Icons.email_rounded, _emailController),
+                          _buildTextField(
+                            context,
+                            'Email',
+                            Icons.email_rounded,
+                            _emailController,
+                          ),
                           SizedBox(height: size.height * 0.015),
-                          _buildTextField(context, 'Password', Icons.lock_rounded, _passwordController, obscureText: true),
+                          _buildTextField(
+                            context,
+                            'Password',
+                            Icons.lock_rounded,
+                            _passwordController,
+                            obscureText: true,
+                          ),
                           SizedBox(height: size.height * 0.025),
-                          
+
                           Container(
                             width: double.infinity,
                             height: 52,
@@ -171,23 +222,18 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
                                 BoxShadow(
-                                  color: theme.colorScheme.shadow.withValues(alpha: 0.15),
+                                  color: theme.colorScheme.shadow.withValues(
+                                    alpha: 0.15,
+                                  ),
                                   blurRadius: 12,
                                   offset: const Offset(0, 6),
                                 ),
                               ],
                             ),
-                            child: ElevatedButton(
-                              onPressed: _isLoading ? null : _signup,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: theme.colorScheme.onSurface,
-                                foregroundColor: theme.colorScheme.surface,
-                                shadowColor: Colors.transparent,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                              ),
-                              child: _isSignupLoading 
-                                  ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
-                                  : const Text('Sign Up', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                            child: PrimaryButton(
+                              text: 'Sign Up',
+                              isLoading: _isSignupLoading,
+                              onPressed: _isLoading ? () {} : _signup,
                             ),
                           ),
                           SizedBox(height: size.height * 0.015),
@@ -197,13 +243,33 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
                             child: OutlinedButton.icon(
                               onPressed: _isLoading ? null : _signInWithGoogle,
                               icon: _isGoogleLoading
-                                  ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
-                                  : Image.asset('assets/icons/google.png', height: 24),
-                              label: const Text('Sign up with Google', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                  ? const SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : Image.asset(
+                                      'assets/icons/google.png',
+                                      height: 24,
+                                    ),
+                              label: const Text(
+                                'Sign up with Google',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: theme.colorScheme.onSurface,
-                                side: BorderSide(color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3)),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                side: BorderSide(
+                                  color: theme.colorScheme.onSurfaceVariant
+                                      .withValues(alpha: 0.3),
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
                               ),
                             ),
                           ),
@@ -211,10 +277,21 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text("Already have an account? ", style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                              Text(
+                                "Already have an account? ",
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
                               GestureDetector(
                                 onTap: () => context.pop(),
-                                child: Text('Login', style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.bold)),
+                                child: Text(
+                                  'Login',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.colorScheme.primary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
                             ],
                           ),
@@ -223,7 +300,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
                     ),
                   ),
                 );
-              }
+              },
             ),
           ),
         ],
@@ -231,13 +308,21 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
     );
   }
 
-  Widget _buildTextField(BuildContext context, String label, IconData icon, TextEditingController controller, {bool obscureText = false}) {
+  Widget _buildTextField(
+    BuildContext context,
+    String label,
+    IconData icon,
+    TextEditingController controller, {
+    bool obscureText = false,
+  }) {
     final theme = Theme.of(context);
     return Container(
       decoration: BoxDecoration(
         color: theme.colorScheme.surface.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.colorScheme.onSurface.withValues(alpha: 0.05)),
+        border: Border.all(
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
+        ),
         boxShadow: [
           BoxShadow(
             color: theme.colorScheme.shadow.withValues(alpha: 0.03),
@@ -257,7 +342,10 @@ class _SignupScreenState extends ConsumerState<SignupScreen> with SingleTickerPr
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide.none,
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 16,
+          ),
           filled: true,
           fillColor: Colors.transparent,
         ),

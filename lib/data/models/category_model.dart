@@ -22,7 +22,9 @@ class CategoryModel extends Category {
       name: map[CategoryFields.name] as String,
       icon: map[CategoryFields.icon] as String,
       type: parseType(map[CategoryFields.type] as String),
-      createdAt: DateTime.fromMillisecondsSinceEpoch(map[CategoryFields.createdAt] as int),
+      createdAt: DateTime.fromMillisecondsSinceEpoch(
+        map[CategoryFields.createdAt] as int,
+      ),
     );
   }
 

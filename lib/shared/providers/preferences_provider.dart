@@ -14,10 +14,7 @@ class AppPreferences {
     this.firstDayOfMonth = '1st of Month',
   });
 
-  AppPreferences copyWith({
-    String? currency,
-    String? firstDayOfMonth,
-  }) {
+  AppPreferences copyWith({String? currency, String? firstDayOfMonth}) {
     return AppPreferences(
       currency: currency ?? this.currency,
       firstDayOfMonth: firstDayOfMonth ?? this.firstDayOfMonth,
@@ -48,4 +45,7 @@ class PreferencesNotifier extends Notifier<AppPreferences> {
   }
 }
 
-final preferencesProvider = NotifierProvider<PreferencesNotifier, AppPreferences>(PreferencesNotifier.new);
+final preferencesProvider =
+    NotifierProvider<PreferencesNotifier, AppPreferences>(
+      PreferencesNotifier.new,
+    );
