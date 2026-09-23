@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
-from typing import List, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from datetime import datetime, timezone
 import logging
+from typing import List, Optional, Any
 
 from database import get_session
 from models import Transaction, Category, Budget, User
@@ -14,9 +14,48 @@ logger = logging.getLogger("spendly.sync")
 router = APIRouter(prefix="/sync", tags=["Sync"])
 
 class SyncPushRequest(BaseModel):
-    transactions: List[Transaction] = []
-    categories: List[Category] = []
-    budgets: List[Budget] = []
+    transactions: List[Any] = []
+    categories: List[Any] = []
+    budgets: List[Any] = []
+
+    @field_validator('categories')
+    @classmethod
+    def validate_categories(cls, v):
+        res = []
+        for x in v:
+            if isinstance(x, dict):
+                res.append(Category.model_validate(x))
+            elif isinstance(x, Category):
+                res.append(Category.model_validate(x.model_dump()))
+            else:
+                res.append(x)
+        return res
+
+    @field_validator('transactions')
+    @classmethod
+    def validate_transactions(cls, v):
+        res = []
+        for x in v:
+            if isinstance(x, dict):
+                res.append(Transaction.model_validate(x))
+            elif isinstance(x, Transaction):
+                res.append(Transaction.model_validate(x.model_dump()))
+            else:
+                res.append(x)
+        return res
+
+    @field_validator('budgets')
+    @classmethod
+    def validate_budgets(cls, v):
+        res = []
+        for x in v:
+            if isinstance(x, dict):
+                res.append(Budget.model_validate(x))
+            elif isinstance(x, Budget):
+                res.append(Budget.model_validate(x.model_dump()))
+            else:
+                res.append(x)
+        return res
 
 class SyncPullResponse(BaseModel):
     transactions: List[Transaction]
@@ -37,8 +76,7 @@ def push_sync(
     try:
         # Process Categories
         for cat in payload.categories:
-            if cat.firebase_uid != uid:
-                cat.firebase_uid = uid
+            cat.firebase_uid = uid
             existing = session.get(Category, cat.id)
             if existing:
                 update_data = cat.model_dump(exclude_unset=True)
@@ -50,8 +88,7 @@ def push_sync(
                 
         # Process Transactions
         for txn in payload.transactions:
-            if txn.firebase_uid != uid:
-                txn.firebase_uid = uid
+            txn.firebase_uid = uid
             existing = session.get(Transaction, txn.id)
             if existing:
                 update_data = txn.model_dump(exclude_unset=True)
@@ -63,8 +100,7 @@ def push_sync(
                 
         # Process Budgets
         for bud in payload.budgets:
-            if bud.firebase_uid != uid:
-                bud.firebase_uid = uid
+            bud.firebase_uid = uid
             existing = session.get(Budget, bud.id)
             if existing:
                 update_data = bud.model_dump(exclude_unset=True)

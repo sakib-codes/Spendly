@@ -34,7 +34,7 @@ class User(SQLModel, table=True):
 
 class Category(SQLModel, table=True):
     id: str = Field(primary_key=True) # UUID from flutter
-    firebase_uid: str = Field(index=True)
+    firebase_uid: Optional[str] = Field(default=None, index=True)
     name: str
     icon: str
     type: str # 'expense', 'income', or 'both'
@@ -58,7 +58,7 @@ class Category(SQLModel, table=True):
 
 class Transaction(SQLModel, table=True):
     id: str = Field(primary_key=True) # UUID from flutter
-    firebase_uid: str = Field(index=True)
+    firebase_uid: Optional[str] = Field(default=None, index=True)
     category_id: str = Field(
         index=True,
         validation_alias=AliasChoices('category_id', 'categoryId')
@@ -92,7 +92,7 @@ class Transaction(SQLModel, table=True):
 
 class Budget(SQLModel, table=True):
     id: str = Field(primary_key=True) # UUID from flutter
-    firebase_uid: str = Field(index=True)
+    firebase_uid: Optional[str] = Field(default=None, index=True)
     category_id: str = Field(
         index=True,
         validation_alias=AliasChoices('category_id', 'categoryId')

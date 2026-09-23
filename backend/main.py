@@ -19,11 +19,11 @@ app.include_router(sync_router)
 
 @app.get("/")
 def read_root():
-    return {"message": "Hello from the Spendly API!"}
+    return {"message": "Hello from the Spendly API!", "version": "1.0.3"}
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok"}
+    return {"status": "ok", "version": "1.0.3"}
 
 @app.get("/debug-env")
 def debug_env():
