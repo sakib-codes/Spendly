@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spendly/shared/widgets/glass_dialog.dart';
 import 'package:spendly/app/theme/app_colors.dart';
@@ -24,6 +25,7 @@ class ManageCategoriesScreen extends ConsumerStatefulWidget {
 class _ManageCategoriesScreenState
     extends ConsumerState<ManageCategoriesScreen> {
   bool _showExpense = true;
+  bool _isFabVisible = true;
 
   @override
   Widget build(BuildContext context) {
@@ -34,15 +36,26 @@ class _ManageCategoriesScreenState
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 130),
-          children: [
-            const CustomHeader(title: 'Categories', padding: EdgeInsets.zero),
-            const SizedBox(height: 24),
+        child: NotificationListener<UserScrollNotification>(
+          onNotification: (notification) {
+            if (notification.metrics.axis == Axis.vertical) {
+              if (notification.direction == ScrollDirection.reverse) {
+                if (_isFabVisible) setState(() => _isFabVisible = false);
+              } else if (notification.direction == ScrollDirection.forward) {
+                if (!_isFabVisible) setState(() => _isFabVisible = true);
+              }
+            }
+            return false;
+          },
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 130),
+            children: [
+              const CustomHeader(title: 'Categories', padding: EdgeInsets.zero),
+              const SizedBox(height: 24),
 
-            // Toggle
-            _buildToggle(context),
-            const SizedBox(height: 24),
+              // Toggle
+              _buildToggle(context),
+              const SizedBox(height: 24),
 
             // Section header
             Text(
@@ -90,48 +103,57 @@ class _ManageCategoriesScreenState
                   );
                 }
 
-                return Column(
-                  children: filtered.map((category) {
-                    return _buildCategoryTile(context, category, transactions);
-                  }).toList(),
+                return ReorderableListView(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  buildDefaultDragHandles: false,
+                  proxyDecorator: (Widget child, int index, Animation<double> animation) {
+                    return Material(
+                      type: MaterialType.transparency,
+                      child: child,
+                    );
+                  },
+                  onReorder: (oldIndex, newIndex) {
+                    ref.read(categoryProvider.notifier).reorderCategories(oldIndex, newIndex, filtered);
+                  },
+                  children: List.generate(filtered.length, (index) {
+                    final category = filtered[index];
+                    return _buildCategoryTile(context, category, transactions, index);
+                  }),
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, st) => Center(child: Text('Error: $e')),
             ),
-
-            const SizedBox(height: 24),
-
-            // Add Category button
-            Center(
-              child: TextButton.icon(
-                onPressed: () => _showAddCategorySheet(
-                  context,
-                  _showExpense ? CategoryType.expense : CategoryType.income,
-                ),
-                icon: const Icon(Icons.add_rounded),
-                label: const Text(
-                  'Add Category',
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-                style: TextButton.styleFrom(
-                  foregroundColor: theme.colorScheme.onSurface,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 14,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(28),
-                    side: BorderSide(
-                      color: theme.colorScheme.onSurface.withValues(
-                        alpha: 0.15,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
           ],
+        ),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: AnimatedSlide(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+        offset: _isFabVisible ? Offset.zero : const Offset(0, 2.5),
+        child: Transform.scale(
+          scale: 0.85,
+          child: FloatingActionButton.extended(
+            onPressed: () => _showAddCategorySheet(
+              context,
+              _showExpense ? CategoryType.expense : CategoryType.income,
+            ),
+            elevation: 8,
+            highlightElevation: 12,
+            backgroundColor: theme.colorScheme.onSurface,
+            foregroundColor: theme.colorScheme.surface,
+            icon: const Icon(Icons.add_rounded, size: 20),
+            label: const Text(
+              'Add Category',
+              style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5),
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30),
+            ),
+          ),
         ),
       ),
     );
@@ -230,6 +252,7 @@ class _ManageCategoriesScreenState
     BuildContext context,
     Category category,
     List<Transaction> transactions,
+    int index,
   ) {
     final theme = Theme.of(context);
     final color = CategoryIconHelper.getColor(category.icon);
@@ -315,9 +338,11 @@ class _ManageCategoriesScreenState
       },
       onDismissed: (direction) {
         ref.read(categoryProvider.notifier).deleteCategory(category.id);
+        ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${category.name} deleted'),
+            duration: const Duration(seconds: 3),
             action: SnackBarAction(
               label: 'UNDO',
               onPressed: () {
@@ -329,72 +354,86 @@ class _ManageCategoriesScreenState
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
-        child: GlassCard(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
+        child: GestureDetector(
+          onTap: () => _showAddCategorySheet(
+            context,
+            category.type,
+            category: category,
+          ),
+          child: GlassCard(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: CategoryIconHelper.getIconWidget(
+                    category.icon,
+                    size: 24,
+                    color: color,
+                  ),
                 ),
-                child: CategoryIconHelper.getIconWidget(
-                  category.icon,
-                  size: 24,
-                  color: color,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      category.name,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        category.name,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      transactionCount > 0
-                          ? '$transactionCount transactions • ${formatBDT(totalAmount)}'
-                          : 'No transactions yet',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                      const SizedBox(height: 4),
+                      Text(
+                        transactionCount > 0
+                            ? '$transactionCount transactions • ${formatBDT(totalAmount)}'
+                            : 'No transactions yet',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              Icon(
-                Icons.drag_handle_rounded,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
-              ),
-            ],
+                ReorderableDragStartListener(
+                  index: index,
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Icon(
+                      Icons.drag_handle_rounded,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  void _showAddCategorySheet(BuildContext context, CategoryType initialType) {
+  void _showAddCategorySheet(BuildContext context, CategoryType initialType, {Category? category}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       useRootNavigator: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _AddCategorySheet(initialType: initialType),
+      builder: (context) => _AddCategorySheet(initialType: initialType, categoryToEdit: category),
     );
   }
 }
 
 class _AddCategorySheet extends ConsumerStatefulWidget {
   final CategoryType initialType;
+  final Category? categoryToEdit;
 
-  const _AddCategorySheet({required this.initialType});
+  const _AddCategorySheet({required this.initialType, this.categoryToEdit});
 
   @override
   ConsumerState<_AddCategorySheet> createState() => _AddCategorySheetState();
@@ -408,7 +447,13 @@ class _AddCategorySheetState extends ConsumerState<_AddCategorySheet> {
   @override
   void initState() {
     super.initState();
-    _selectedType = widget.initialType;
+    if (widget.categoryToEdit != null) {
+      _nameController.text = widget.categoryToEdit!.name;
+      _selectedIconKey = widget.categoryToEdit!.icon;
+      _selectedType = widget.categoryToEdit!.type;
+    } else {
+      _selectedType = widget.initialType;
+    }
   }
 
   @override
@@ -646,7 +691,7 @@ class _AddCategorySheetState extends ConsumerState<_AddCategorySheet> {
 
             // Save Button
             PrimaryButton(
-              text: 'Save Category',
+              text: widget.categoryToEdit != null ? 'Update Category' : 'Save Category',
               onPressed: () {
                 final name = _nameController.text.trim();
                 if (name.isEmpty) return;
@@ -654,7 +699,7 @@ class _AddCategorySheetState extends ConsumerState<_AddCategorySheet> {
                 final existingCategories =
                     ref.read(categoryProvider).value ?? [];
                 if (existingCategories.any(
-                  (c) => c.name.toLowerCase() == name.toLowerCase(),
+                  (c) => c.name.toLowerCase() == name.toLowerCase() && c.id != widget.categoryToEdit?.id,
                 )) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -666,16 +711,29 @@ class _AddCategorySheetState extends ConsumerState<_AddCategorySheet> {
                   return;
                 }
 
-                final newCategory = Category(
-                  id: const Uuid().v4(),
-                  name: name,
-                  icon: _selectedIconKey,
-                  type: _selectedType,
-                  createdAt: DateTime.now(),
-                  updatedAt: DateTime.now(),
-                );
+                if (widget.categoryToEdit != null) {
+                  final updatedCategory = Category(
+                    id: widget.categoryToEdit!.id,
+                    name: name,
+                    icon: _selectedIconKey,
+                    type: _selectedType,
+                    sortOrder: widget.categoryToEdit!.sortOrder,
+                    createdAt: widget.categoryToEdit!.createdAt,
+                    updatedAt: DateTime.now(),
+                  );
+                  ref.read(categoryProvider.notifier).updateCategory(updatedCategory);
+                } else {
+                  final newCategory = Category(
+                    id: const Uuid().v4(),
+                    name: name,
+                    icon: _selectedIconKey,
+                    type: _selectedType,
+                    createdAt: DateTime.now(),
+                    updatedAt: DateTime.now(),
+                  );
+                  ref.read(categoryProvider.notifier).addCategory(newCategory);
+                }
 
-                ref.read(categoryProvider.notifier).addCategory(newCategory);
                 Navigator.pop(context);
               },
             ),

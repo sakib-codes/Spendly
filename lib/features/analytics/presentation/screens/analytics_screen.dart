@@ -11,7 +11,8 @@ import 'package:spendly/shared/widgets/zoomable_line_chart.dart';
 import 'package:spendly/shared/widgets/primary_button.dart';
 import 'package:intl/intl.dart';
 import 'package:spendly/shared/widgets/month_picker_pill.dart';
-
+import 'package:spendly/shared/providers/preferences_provider.dart';
+import 'package:spendly/shared/utils/category_icon_helper.dart';
 class AnalyticsScreen extends ConsumerWidget {
   const AnalyticsScreen({super.key});
 
@@ -217,11 +218,28 @@ class AnalyticsScreen extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                progress.categoryName,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: CategoryIconHelper.getIconWidget(
+                      progress.categoryIcon,
+                      color: color,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    progress.categoryName,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
               TextButton(
                 onPressed: () => _showSetBudgetSheet(context, progress),
@@ -605,13 +623,22 @@ class _SetBudgetSheetState extends ConsumerState<_SetBudgetSheet> {
     super.dispose();
   }
 
+  String _getCurrencySymbol(String currencyPref) {
+    final match = RegExp(r'\((.*?)\)').firstMatch(currencyPref);
+    return match?.group(1) ?? currencyPref;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final preferences = ref.watch(preferencesProvider);
+    final currencySymbol = _getCurrencySymbol(preferences.currency);
 
     return GlassCard(
       padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom + 32,
+        bottom: MediaQuery.of(context).viewInsets.bottom +
+            MediaQuery.of(context).padding.bottom +
+            16,
         top: 32,
         left: 24,
         right: 24,
@@ -633,7 +660,7 @@ class _SetBudgetSheetState extends ConsumerState<_SetBudgetSheet> {
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(
               hintText: '0',
-              prefixText: '\$ ',
+              prefixText: '$currencySymbol ',
               filled: true,
               fillColor: theme.colorScheme.surface,
               border: OutlineInputBorder(
@@ -661,6 +688,29 @@ class _SetBudgetSheetState extends ConsumerState<_SetBudgetSheet> {
               Navigator.of(context, rootNavigator: true).pop();
             },
           ),
+          if (widget.progress.budgetedAmount > 0) ...[
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () {
+                ref
+                    .read(budgetProvider.notifier)
+                    .removeBudget(widget.progress.categoryId);
+                Navigator.of(context, rootNavigator: true).pop();
+              },
+              style: TextButton.styleFrom(
+                backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.15),
+                foregroundColor: AppColors.expenseAccent,
+                minimumSize: const Size(double.infinity, 56),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: const Text(
+                'Remove Budget',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
         ],
       ),
     );

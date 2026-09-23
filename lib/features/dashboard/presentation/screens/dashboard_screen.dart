@@ -15,6 +15,8 @@ import 'package:spendly/shared/utils/category_icon_helper.dart';
 import 'package:spendly/shared/utils/currency_formatter.dart';
 import 'package:spendly/shared/providers/weather_provider.dart';
 import 'package:spendly/shared/widgets/advanced_weather_card.dart';
+import 'package:spendly/shared/widgets/weather_skeleton_loader.dart';
+import 'package:spendly/shared/widgets/glass_toast.dart';
 import 'package:intl/intl.dart';
 import 'package:lottie/lottie.dart';
 import 'package:spendly/shared/widgets/month_picker_pill.dart';
@@ -110,57 +112,75 @@ class DashboardScreen extends ConsumerWidget {
           ),
         ),
         const SizedBox(width: 8),
-        weatherState.when(
-          data: (weather) => GestureDetector(
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Row(
-                    children: [
-                      SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      ),
-                      SizedBox(width: 12),
-                      Text(
-                        'Refreshing weather...',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  backgroundColor: Theme.of(context).colorScheme.onSurface,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  margin: const EdgeInsets.all(16),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
+            return Stack(
+              alignment: Alignment.centerRight,
+              children: <Widget>[
+                ...previousChildren,
+                ?currentChild,
+              ],
+            );
+          },
+          transitionBuilder: (child, animation) {
+            return FadeTransition(
+              opacity: animation,
+              child: child,
+            );
+          },
+          child: weatherState.when(
+            data: (weather) => GestureDetector(
+              key: const ValueKey('weather_data'),
+              onTap: () {
+                GlassToast.show(
+                  context: context,
+                  message: 'Refreshing weather...',
                   duration: const Duration(seconds: 1),
-                  elevation: 0,
+                );
+                ref.invalidate(weatherInfoProvider);
+              },
+              behavior: HitTestBehavior.opaque,
+              child: AdvancedWeatherCard(weather: weather),
+            ),
+            loading: () => const WeatherSkeletonLoader(
+              key: ValueKey('weather_loading'),
+            ),
+            error: (e, st) => GestureDetector(
+              key: const ValueKey('weather_error'),
+              onTap: () => ref.invalidate(weatherInfoProvider),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
                 ),
-              );
-              ref.invalidate(weatherInfoProvider);
-            },
-            behavior: HitTestBehavior.opaque,
-            child: AdvancedWeatherCard(weather: weather),
-          ),
-          loading: () => const SizedBox(
-            width: 70,
-            height: 60,
-            child: Center(child: CircularProgressIndicator()),
-          ),
-          error: (e, st) => GestureDetector(
-            onTap: () => ref.invalidate(weatherInfoProvider),
-            child: const SizedBox(
-              width: 70,
-              height: 60,
-              child: Center(child: Icon(Icons.refresh, color: Colors.grey)),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest
+                      .withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: theme.colorScheme.outline.withValues(alpha: 0.1),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.cloud_off_rounded,
+                      size: 16,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.refresh_rounded,
+                      size: 14,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
@@ -227,6 +247,7 @@ class DashboardScreen extends ConsumerWidget {
               Expanded(
                 child: _buildMiniSummary(
                   context,
+                  ref,
                   'Income',
                   stats.totalIncome,
                   true,
@@ -243,6 +264,7 @@ class DashboardScreen extends ConsumerWidget {
               Expanded(
                 child: _buildMiniSummary(
                   context,
+                  ref,
                   'Expenses',
                   stats.totalExpense,
                   false,
@@ -257,6 +279,7 @@ class DashboardScreen extends ConsumerWidget {
 
   Widget _buildMiniSummary(
     BuildContext context,
+    WidgetRef ref,
     String title,
     double amount,
     bool isIncome,
@@ -267,7 +290,12 @@ class DashboardScreen extends ConsumerWidget {
     final iconBgColor = color.withValues(alpha: 0.1);
 
     return GestureDetector(
-      onTap: () => context.goNamed(RouteNames.transactions),
+      onTap: () {
+        ref.read(transactionFilterProvider.notifier).setFilter(
+              isIncome ? TransactionType.income : TransactionType.expense,
+            );
+        context.goNamed(RouteNames.transactions);
+      },
       behavior: HitTestBehavior.opaque,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

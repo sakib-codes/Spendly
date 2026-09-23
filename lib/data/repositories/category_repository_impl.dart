@@ -14,6 +14,7 @@ class CategoryRepositoryImpl implements CategoryRepository {
     final result = await db.query(
       DatabaseTables.categories,
       where: '${CategoryFields.deletedAt} IS NULL',
+      orderBy: '${CategoryFields.sortOrder} ASC',
     );
     return result.map((map) => CategoryModel.fromMap(map)).toList();
   }
@@ -98,5 +99,20 @@ class CategoryRepositoryImpl implements CategoryRepository {
       );
     }
     SyncService().push();
+  }
+
+  @override
+  Future<void> updateCategoriesOrder(List<Category> categories) async {
+    final db = await AppDatabase.instance;
+    final batch = db.batch();
+    for (var category in categories) {
+      batch.update(
+        DatabaseTables.categories,
+        {CategoryFields.sortOrder: category.sortOrder},
+        where: '${CategoryFields.id} = ?',
+        whereArgs: [category.id],
+      );
+    }
+    await batch.commit(noResult: true);
   }
 }

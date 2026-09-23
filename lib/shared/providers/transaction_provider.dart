@@ -49,3 +49,17 @@ final transactionProvider =
     AsyncNotifierProvider<TransactionNotifier, List<Transaction>>(() {
       return TransactionNotifier();
     });
+
+class TransactionFilterNotifier extends Notifier<TransactionType?> {
+  @override
+  TransactionType? build() => null;
+
+  void setFilter(TransactionType? filter) {
+    state = filter;
+  }
+}
+
+final transactionFilterProvider =
+    NotifierProvider<TransactionFilterNotifier, TransactionType?>(() {
+      return TransactionFilterNotifier();
+    });

@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:spendly/shared/services/profile_photo_cache.dart';
 
 enum AuthStatus { initial, authenticated, unauthenticated }
 
@@ -41,6 +42,9 @@ class AuthNotifier extends Notifier<AuthStatus> {
         email: email,
         password: password,
       );
+      // Cache the profile photo locally on login
+      final user = FirebaseAuth.instance.currentUser;
+      await ProfilePhotoCache.instance.load(user?.photoURL);
     } on FirebaseAuthException catch (e) {
       throw e.message ?? 'An unknown error occurred during login.';
     } catch (e) {
@@ -60,7 +64,25 @@ class AuthNotifier extends Notifier<AuthStatus> {
     }
   }
 
+  Future<void> deleteAccount() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw 'User not logged in';
+      await user.delete();
+      await ProfilePhotoCache.instance.clear();
+      // Auth state changes will handle setting state to unauthenticated
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'requires-recent-login') {
+        throw 'For your security, please log out and log back in before deleting your account.';
+      }
+      throw e.message ?? 'An unknown error occurred';
+    } catch (e) {
+      throw 'Failed to delete account: $e';
+    }
+  }
+
   Future<void> logout() async {
+    await ProfilePhotoCache.instance.clear();
     await FirebaseAuth.instance.signOut();
   }
 
@@ -68,6 +90,9 @@ class AuthNotifier extends Notifier<AuthStatus> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw 'User not logged in';
+
+      // Immediately cache the picked file locally for instant display
+      await ProfilePhotoCache.instance.updateFromFile(imageFile);
 
       final storageRef = FirebaseStorage.instance.ref().child(
         'profile_pictures/${user.uid}.jpg',
@@ -99,6 +124,8 @@ class AuthNotifier extends Notifier<AuthStatus> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw 'User not logged in';
       await user.updatePassword(newPassword);
+      await user.reload();
+      state = AuthStatus.authenticated;
     } on FirebaseAuthException catch (e) {
       if (e.code == 'requires-recent-login') {
         throw 'For your security, please log out and log back in before changing your password.';
@@ -163,6 +190,9 @@ class AuthNotifier extends Notifier<AuthStatus> {
 
       final UserCredential userCredential = await FirebaseAuth.instance
           .signInWithCredential(credential);
+      // Cache the profile photo locally on Google sign-in
+      final user = userCredential.user;
+      await ProfilePhotoCache.instance.load(user?.photoURL);
       return userCredential.additionalUserInfo?.isNewUser ?? false;
     } on FirebaseAuthException catch (e) {
       throw e.message ?? 'An unknown error occurred during Google sign-in.';

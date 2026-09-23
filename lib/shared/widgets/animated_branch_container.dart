@@ -75,19 +75,19 @@ class _BranchState extends State<_Branch> with SingleTickerProviderStateMixin {
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 350),
+      duration: const Duration(milliseconds: 250),
     );
 
     // Initial state
     _slideAnimation = Tween<Offset>(
       begin: Offset.zero,
       end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.fastOutSlowIn));
 
     _fadeAnimation = Tween<double>(
       begin: 1.0,
       end: 1.0,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.fastOutSlowIn));
 
     if (widget.isActive) {
       _isOffstage = false;
@@ -102,10 +102,8 @@ class _BranchState extends State<_Branch> with SingleTickerProviderStateMixin {
   void didUpdateWidget(covariant _Branch oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.isActive != oldWidget.isActive) {
-      final curve = Curves.easeOutCubic;
-      // We use 0.3 offset for a premium short-slide effect.
-      // If you want a full edge-to-edge slide, change this to 1.0
-      const slideDistance = 0.4;
+      final curve = Curves.fastOutSlowIn;
+      const slideDistance = 0.15;
 
       if (widget.isActive) {
         // Entering
@@ -164,7 +162,12 @@ class _BranchState extends State<_Branch> with SingleTickerProviderStateMixin {
             opacity: _fadeAnimation,
             child: SlideTransition(
               position: _slideAnimation,
-              child: widget.child,
+              child: RepaintBoundary(
+                child: ColoredBox(
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                  child: widget.child,
+                ),
+              ),
             ),
           ),
         ),

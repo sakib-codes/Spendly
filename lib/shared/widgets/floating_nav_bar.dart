@@ -35,7 +35,7 @@ class FloatingNavigationBar extends StatelessWidget {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(30),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
             child: Container(
               color: colors.surfaceContainer,
               child: LayoutBuilder(

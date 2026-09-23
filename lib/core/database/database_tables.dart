@@ -25,6 +25,7 @@ class CategoryFields {
   static const String name = 'name';
   static const String icon = 'icon';
   static const String type = 'type'; // 'expense', 'income', or 'both'
+  static const String sortOrder = 'sortOrder';
   static const String createdAt = 'createdAt';
   static const String updatedAt = 'updatedAt';
   static const String isSynced = 'isSynced';

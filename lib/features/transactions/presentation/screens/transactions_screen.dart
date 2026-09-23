@@ -24,7 +24,6 @@ class TransactionsScreen extends ConsumerStatefulWidget {
 class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  TransactionType? _filterType;
   String _sortBy = 'date_desc';
 
   @override
@@ -47,6 +46,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   Widget build(BuildContext context) {
     final transactionsState = ref.watch(transactionProvider);
     final categoriesState = ref.watch(categoryProvider);
+    final filterType = ref.watch(transactionFilterProvider);
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -75,9 +75,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     )
                     .toList();
 
-                if (_filterType != null) {
+                if (filterType != null) {
                   transactions = transactions
-                      .where((t) => t.type == _filterType)
+                      .where((t) => t.type == filterType)
                       .toList();
                 }
 
@@ -240,9 +240,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
-                      hintText: 'Search description...',
+                      hintText: 'Search transactions...',
                       hintStyle: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
                       ),
                       border: InputBorder.none,
                     ),
@@ -326,10 +326,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                     child: _buildFilterChip(
                                       context,
                                       'All',
-                                      _filterType == null,
+                                      ref.read(transactionFilterProvider) == null,
                                       () {
-                                        setModalState(() => _filterType = null);
-                                        setState(() {});
+                                        ref.read(transactionFilterProvider.notifier).setFilter(null);
+                                        setModalState(() {});
                                       },
                                     ),
                                   ),
@@ -338,13 +338,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                     child: _buildFilterChip(
                                       context,
                                       'Income',
-                                      _filterType == TransactionType.income,
+                                      ref.read(transactionFilterProvider) == TransactionType.income,
                                       () {
-                                        setModalState(
-                                          () => _filterType =
-                                              TransactionType.income,
-                                        );
-                                        setState(() {});
+                                        ref.read(transactionFilterProvider.notifier).setFilter(TransactionType.income);
+                                        setModalState(() {});
                                       },
                                       activeColor: AppColors.incomeAccent,
                                     ),
@@ -354,13 +351,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                                     child: _buildFilterChip(
                                       context,
                                       'Expense',
-                                      _filterType == TransactionType.expense,
+                                      ref.read(transactionFilterProvider) == TransactionType.expense,
                                       () {
-                                        setModalState(
-                                          () => _filterType =
-                                              TransactionType.expense,
-                                        );
-                                        setState(() {});
+                                        ref.read(transactionFilterProvider.notifier).setFilter(TransactionType.expense);
+                                        setModalState(() {});
                                       },
                                       activeColor: AppColors.expenseAccent,
                                     ),
@@ -445,7 +439,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                               GestureDetector(
                                 onTap: () {
                                   setModalState(() {
-                                    _filterType = null;
+                                    ref.read(transactionFilterProvider.notifier).setFilter(null);
                                     _sortBy = 'date_desc';
                                     ref
                                         .read(selectedMonthProvider.notifier)
@@ -480,16 +474,39 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
               },
             );
           },
-          child: GlassCard(
-            padding: EdgeInsets.zero,
-            height: 56,
-            width: 56,
-            child: Center(
-              child: Icon(
-                Icons.tune_rounded,
-                color: theme.colorScheme.onSurface,
+          child: Stack(
+            children: [
+              GlassCard(
+                padding: EdgeInsets.zero,
+                height: 56,
+                width: 56,
+                child: Center(
+                  child: Icon(
+                    Icons.tune_rounded,
+                    color: ref.watch(transactionFilterProvider) != null
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurface,
+                  ),
+                ),
               ),
-            ),
+              if (ref.watch(transactionFilterProvider) != null)
+                Positioned(
+                  top: 14,
+                  right: 14,
+                  child: Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: theme.colorScheme.surface,
+                        width: 2,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ],

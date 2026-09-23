@@ -7,6 +7,7 @@ class Category extends Equatable {
   final String name;
   final String icon;
   final CategoryType type;
+  final int sortOrder;
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isSynced;
@@ -17,6 +18,7 @@ class Category extends Equatable {
     required this.name,
     required this.icon,
     required this.type,
+    this.sortOrder = 0,
     required this.createdAt,
     required this.updatedAt,
     this.isSynced = false,
@@ -29,6 +31,7 @@ class Category extends Equatable {
         name,
         icon,
         type,
+        sortOrder,
         createdAt,
         updatedAt,
         isSynced,

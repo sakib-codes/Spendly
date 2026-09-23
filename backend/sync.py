@@ -78,37 +78,49 @@ def push_sync(
         for cat in payload.categories:
             cat.firebase_uid = uid
             existing = session.get(Category, cat.id)
-            if existing:
-                update_data = cat.model_dump(exclude_unset=True)
-                for key, value in update_data.items():
-                    setattr(existing, key, value)
-                session.add(existing)
+            if cat.deleted_at is not None:
+                if existing:
+                    session.delete(existing)
             else:
-                session.add(cat)
+                if existing:
+                    update_data = cat.model_dump(exclude_unset=True)
+                    for key, value in update_data.items():
+                        setattr(existing, key, value)
+                    session.add(existing)
+                else:
+                    session.add(cat)
                 
         # Process Transactions
         for txn in payload.transactions:
             txn.firebase_uid = uid
             existing = session.get(Transaction, txn.id)
-            if existing:
-                update_data = txn.model_dump(exclude_unset=True)
-                for key, value in update_data.items():
-                    setattr(existing, key, value)
-                session.add(existing)
+            if txn.deleted_at is not None:
+                if existing:
+                    session.delete(existing)
             else:
-                session.add(txn)
+                if existing:
+                    update_data = txn.model_dump(exclude_unset=True)
+                    for key, value in update_data.items():
+                        setattr(existing, key, value)
+                    session.add(existing)
+                else:
+                    session.add(txn)
                 
         # Process Budgets
         for bud in payload.budgets:
             bud.firebase_uid = uid
             existing = session.get(Budget, bud.id)
-            if existing:
-                update_data = bud.model_dump(exclude_unset=True)
-                for key, value in update_data.items():
-                    setattr(existing, key, value)
-                session.add(existing)
+            if bud.deleted_at is not None:
+                if existing:
+                    session.delete(existing)
             else:
-                session.add(bud)
+                if existing:
+                    update_data = bud.model_dump(exclude_unset=True)
+                    for key, value in update_data.items():
+                        setattr(existing, key, value)
+                    session.add(existing)
+                else:
+                    session.add(bud)
                 
         session.commit()
         return {"status": "success"}

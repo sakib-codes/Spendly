@@ -67,6 +67,7 @@ final budgetProvider = AsyncNotifierProvider<BudgetNotifier, List<Budget>>(() {
 class CategoryBudgetProgress {
   final String categoryId;
   final String categoryName;
+  final String categoryIcon;
   final double budgetedAmount;
   final double spentAmount;
 
@@ -77,6 +78,7 @@ class CategoryBudgetProgress {
   CategoryBudgetProgress({
     required this.categoryId,
     required this.categoryName,
+    required this.categoryIcon,
     required this.budgetedAmount,
     required this.spentAmount,
   });
@@ -144,6 +146,7 @@ final budgetProgressProvider =
         return CategoryBudgetProgress(
           categoryId: cat.id,
           categoryName: cat.name,
+          categoryIcon: cat.icon,
           budgetedAmount: budget?.amount ?? 0.0,
           spentAmount: spent,
         );

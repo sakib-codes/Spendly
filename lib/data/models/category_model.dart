@@ -7,6 +7,7 @@ class CategoryModel extends Category {
     required super.name,
     required super.icon,
     required super.type,
+    super.sortOrder = 0,
     required super.createdAt,
     required super.updatedAt,
     super.isSynced = false,
@@ -25,6 +26,7 @@ class CategoryModel extends Category {
       name: map[CategoryFields.name] as String,
       icon: map[CategoryFields.icon] as String,
       type: parseType(map[CategoryFields.type] as String),
+      sortOrder: map[CategoryFields.sortOrder] as int? ?? 0,
       createdAt: DateTime.fromMillisecondsSinceEpoch(
         map[CategoryFields.createdAt] as int,
       ),
@@ -49,6 +51,7 @@ class CategoryModel extends Category {
       CategoryFields.name: name,
       CategoryFields.icon: icon,
       CategoryFields.type: typeStr,
+      CategoryFields.sortOrder: sortOrder,
       CategoryFields.createdAt: createdAt.millisecondsSinceEpoch,
       CategoryFields.updatedAt: updatedAt.millisecondsSinceEpoch,
       CategoryFields.isSynced: isSynced ? 1 : 0,

@@ -33,6 +33,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Watch authProvider so UI updates when password provider is added
+    ref.watch(authProvider);
     final themeMode = ref.watch(themeModeProvider);
     final preferences = ref.watch(preferencesProvider);
     final String themeText = switch (themeMode) {
@@ -129,11 +131,26 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   );
                 },
               ),
+              _buildDivider(context),
+              _buildSettingItem(
+                context,
+                'Delete Account',
+                '',
+                isDestructive: true,
+                onTap: () {
+                  showGeneralDialog(
+                    context: context,
+                    barrierDismissible: true,
+                    barrierLabel: 'Delete Account Dialog',
+                    pageBuilder: (context, _, _) => const _DeleteAccountDialog(),
+                  );
+                },
+              ),
             ]),
             const SizedBox(height: 32),
-            _buildCloudSyncSection(context, ref),
-            const SizedBox(height: 32),
-            _buildSection(context, 'DATA & SECURITY', [
+            _buildSection(context, 'DATA & SYNC', [
+              _buildCloudSyncItem(context, ref),
+              _buildDivider(context),
               _buildSettingItem(
                 context,
                 'Export Data',
@@ -208,29 +225,35 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       },
                     ),
                     actions: [
-                      TextButton(
-                        onPressed: () =>
-                            Navigator.of(context, rootNavigator: true).pop(),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 12,
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () =>
+                              Navigator.of(context, rootNavigator: true).pop(),
+                          style: TextButton.styleFrom(
+                            backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.15),
+                            foregroundColor: Theme.of(context).colorScheme.onSurface,
+                            minimumSize: const Size(double.infinity, 56),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
+                          child: const Text(
+                            'Cancel',
+                            style: TextStyle(fontWeight: FontWeight.bold),
                           ),
-                        ),
-                        child: const Text(
-                          'Cancel',
-                          style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),
                       const SizedBox(width: 8),
-                      StatefulBuilder(
-                        builder: (context, setState) {
-                          return PrimaryButton(
-                            width: null, // Let it adapt in the Row
-                            text: 'Delete',
+                      Expanded(
+                        child: StatefulBuilder(
+                          builder: (context, setState) {
+                            return PrimaryButton(
+                              width: double.infinity,
+                              text: 'Delete',
                             color: AppColors.expenseAccent,
                             textColor: Colors.white,
                             onPressed: confirmationText == 'DELETE'
@@ -254,7 +277,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           );
                         },
                       ),
-                    ],
+                    ),
+                  ],
                   );
                 },
               ),
@@ -348,6 +372,33 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ),
                     ],
                   );
+                },
+              ),
+              _buildDivider(context),
+              _buildSettingItem(
+                context,
+                'Help Center',
+                '',
+                onTap: () {
+                  GlassToast.show(context: context, message: 'Help Center is coming soon!');
+                },
+              ),
+              _buildDivider(context),
+              _buildSettingItem(
+                context,
+                'Contact Support',
+                '',
+                onTap: () {
+                  GlassToast.show(context: context, message: 'Contact Support is coming soon!');
+                },
+              ),
+              _buildDivider(context),
+              _buildSettingItem(
+                context,
+                'Terms & Policies',
+                '',
+                onTap: () {
+                  GlassToast.show(context: context, message: 'Terms & Policies are coming soon!');
                 },
               ),
               _buildDivider(context),
@@ -518,155 +569,158 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Widget _buildCloudSyncSection(BuildContext context, WidgetRef ref) {
+  Widget _buildCloudSyncItem(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final syncState = ref.watch(syncProvider);
 
-    IconData statusIcon;
-    Color iconColor;
-    String statusTitle;
-    String statusSubtitle;
+    final bool isSyncing = syncState.status == SyncStatus.syncing;
+    final bool isOffline = syncState.status == SyncStatus.offline;
+    final bool isError = syncState.status == SyncStatus.error;
 
-    switch (syncState.status) {
-      case SyncStatus.syncing:
-        statusIcon = Icons.sync_rounded;
-        iconColor = theme.colorScheme.primary;
-        statusTitle = 'Syncing to Cloud...';
-        statusSubtitle = 'Uploading changes to Neon database';
-        break;
-      case SyncStatus.offline:
-        statusIcon = Icons.cloud_off_rounded;
-        iconColor = AppColors.warningAccent;
-        statusTitle = 'Offline Mode';
-        statusSubtitle = syncState.pendingCount > 0
-            ? '${syncState.pendingCount} local ${syncState.pendingCount == 1 ? "change" : "changes"} will sync when online'
-            : 'Changes saved locally on device';
-        break;
-      case SyncStatus.error:
-        statusIcon = Icons.cloud_queue_rounded;
-        iconColor = AppColors.expenseAccent;
-        statusTitle = 'Sync Interrupted';
-        statusSubtitle = syncState.errorMessage ?? 'Tap to retry cloud sync';
-        break;
-      case SyncStatus.synced:
-        statusIcon = Icons.cloud_done_rounded;
-        iconColor = AppColors.incomeAccent;
-        statusTitle = 'Cloud Backup Active';
-        statusSubtitle = syncState.pendingCount > 0
-            ? '${syncState.pendingCount} local changes pending'
-            : 'All data backed up • ${_formatLastSync(syncState.lastSyncTime)}';
-        break;
-    }
+    final Color statusColor = isSyncing
+        ? theme.colorScheme.primary
+        : (isOffline
+            ? AppColors.warningAccent
+            : (isError ? AppColors.expenseAccent : AppColors.incomeAccent));
 
-    return _buildSection(context, 'CLOUD BACKUP', [
-      InkWell(
-        onTap: () => _showCloudSyncDetailsDialog(context, ref, syncState),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: iconColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Center(
-                  child: syncState.status == SyncStatus.syncing
-                      ? SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            valueColor: AlwaysStoppedAnimation<Color>(iconColor),
-                          ),
-                        )
-                      : Icon(statusIcon, color: iconColor, size: 24),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    final String statusText = isSyncing
+        ? 'Syncing in background...'
+        : (isOffline
+            ? (syncState.pendingCount > 0
+                ? '${syncState.pendingCount} local changes pending'
+                : 'Offline • Stored on device')
+            : (syncState.pendingCount > 0
+                ? '${syncState.pendingCount} changes to upload'
+                : 'Up to date • ${_formatLastSync(syncState.lastSyncTime)}'));
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: statusColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
+              child: isSyncing
+                  ? SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(statusColor),
+                      ),
+                    )
+                  : Icon(
+                      isOffline
+                          ? Icons.cloud_off_rounded
+                          : (isError
+                              ? Icons.sync_problem_rounded
+                              : Icons.cloud_done_rounded),
+                      color: statusColor,
+                      size: 20,
+                    ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
                     Text(
-                      statusTitle,
+                      'Cloud Backup',
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 3),
+                    const SizedBox(width: 8),
+                    _PulsingLedDot(
+                      color: statusColor,
+                      isSyncing: isSyncing,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  statusText,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: isSyncing
+                  ? null
+                  : () async {
+                      final success = await ref
+                          .read(syncProvider.notifier)
+                          .syncNow();
+                      if (context.mounted) {
+                        GlassToast.show(
+                          context: context,
+                          message: success
+                              ? 'Backup up to date!'
+                              : 'Offline: changes saved on device',
+                        );
+                      }
+                    },
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? theme.colorScheme.primaryContainer
+                          .withValues(alpha: 0.45)
+                      : theme.colorScheme.primary
+                          .withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: theme.colorScheme.primary
+                        .withValues(alpha: 0.25),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _RotatingSyncIcon(
+                      isSyncing: isSyncing,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 5),
                     Text(
-                      statusSubtitle,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                      isSyncing ? 'Syncing' : 'Sync',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
-              // "Sync" tactile button
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: syncState.status == SyncStatus.syncing
-                      ? null
-                      : () async {
-                          final success = await ref
-                              .read(syncProvider.notifier)
-                              .syncNow();
-                          if (context.mounted) {
-                            GlassToast.show(
-                              context: context,
-                              message: success
-                                  ? 'Cloud sync complete!'
-                                  : 'Sync failed: saved locally on device',
-                            );
-                          }
-                        },
-                  borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.25),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.refresh_rounded,
-                          size: 14,
-                          color: theme.colorScheme.primary,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Sync',
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
-    ]);
+    );
   }
 
   String _formatLastSync(DateTime? time) {
@@ -677,172 +731,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
     if (diff.inHours < 24) return '${diff.inHours}h ago';
     return DateFormat('MMM d, h:mm a').format(time.toLocal());
-  }
-
-  void _showCloudSyncDetailsDialog(
-    BuildContext context,
-    WidgetRef ref,
-    SyncState syncState,
-  ) {
-    final theme = Theme.of(context);
-    final user = FirebaseAuth.instance.currentUser;
-    final lastSyncFormatted = syncState.lastSyncTime != null
-        ? DateFormat('MMM d, yyyy • h:mm:ss a')
-            .format(syncState.lastSyncTime!.toLocal())
-        : 'Never';
-
-    GlassDialog.show(
-      context: context,
-      title: 'Cloud Synchronization',
-      icon: Container(
-        width: 56,
-        height: 56,
-        decoration: BoxDecoration(
-          color: theme.colorScheme.primary.withValues(alpha: 0.12),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          Icons.cloud_sync_rounded,
-          color: theme.colorScheme.primary,
-          size: 32,
-        ),
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildDetailRow(
-            context,
-            'Database',
-            'Neon (PostgreSQL)',
-            Icons.storage_rounded,
-          ),
-          const SizedBox(height: 12),
-          _buildDetailRow(
-            context,
-            'Backend Service',
-            'Render (FastAPI)',
-            Icons.cloud_queue_rounded,
-          ),
-          const SizedBox(height: 12),
-          _buildDetailRow(
-            context,
-            'Account',
-            user?.email ?? 'Logged in user',
-            Icons.account_circle_outlined,
-          ),
-          const SizedBox(height: 12),
-          _buildDetailRow(
-            context,
-            'Unsynced Changes',
-            syncState.pendingCount == 0
-                ? 'All synced (0)'
-                : '${syncState.pendingCount} pending',
-            Icons.pending_actions_rounded,
-            highlightColor: syncState.pendingCount > 0
-                ? AppColors.warningAccent
-                : AppColors.incomeAccent,
-          ),
-          const SizedBox(height: 12),
-          _buildDetailRow(
-            context,
-            'Last Backup',
-            lastSyncFormatted,
-            Icons.access_time_rounded,
-          ),
-        ],
-      ),
-      actions: [
-        Expanded(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              PrimaryButton(
-                text: syncState.status == SyncStatus.syncing
-                    ? 'Syncing...'
-                    : 'Sync Now',
-                isLoading: syncState.status == SyncStatus.syncing,
-                onPressed: () {
-                  if (syncState.status == SyncStatus.syncing) return;
-                  Navigator.of(context, rootNavigator: true).pop();
-                  ref.read(syncProvider.notifier).syncNow().then((success) {
-                    if (context.mounted) {
-                      GlassToast.show(
-                        context: context,
-                        message: success
-                            ? 'Cloud backup complete!'
-                            : 'Sync failed. Saved locally on device.',
-                      );
-                    }
-                  });
-                },
-              ),
-              const SizedBox(height: 8),
-              TextButton(
-                onPressed: () =>
-                    Navigator.of(context, rootNavigator: true).pop(),
-                child: Text(
-                  'Close',
-                  style: TextStyle(color: theme.colorScheme.onSurface),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDetailRow(
-    BuildContext context,
-    String label,
-    String value,
-    IconData icon, {
-    Color? highlightColor,
-  }) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color:
-            theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: theme.colorScheme.outline.withValues(alpha: 0.08),
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            icon,
-            size: 18,
-            color: highlightColor ?? theme.colorScheme.primary,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              label,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              value,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: highlightColor ?? theme.colorScheme.onSurface,
-              ),
-              textAlign: TextAlign.end,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   Widget _buildSection(
@@ -1043,6 +931,116 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 }
 
+class _PulsingLedDot extends StatefulWidget {
+  final Color color;
+  final bool isSyncing;
+
+  const _PulsingLedDot({required this.color, this.isSyncing = false});
+
+  @override
+  State<_PulsingLedDot> createState() => _PulsingLedDotState();
+}
+
+class _PulsingLedDotState extends State<_PulsingLedDot>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    )..repeat(reverse: true);
+    _animation = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Container(
+          width: 7,
+          height: 7,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: widget.color,
+            boxShadow: [
+              BoxShadow(
+                color: widget.color.withValues(
+                  alpha: 0.35 + (_animation.value * 0.5),
+                ),
+                blurRadius: 3 + (_animation.value * 5),
+                spreadRadius: 0.5 + (_animation.value * 1.5),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _RotatingSyncIcon extends StatefulWidget {
+  final bool isSyncing;
+  final Color color;
+
+  const _RotatingSyncIcon({required this.isSyncing, required this.color});
+
+  @override
+  State<_RotatingSyncIcon> createState() => _RotatingSyncIconState();
+}
+
+class _RotatingSyncIconState extends State<_RotatingSyncIcon>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+    if (widget.isSyncing) {
+      _controller.repeat();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _RotatingSyncIcon oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isSyncing && !_controller.isAnimating) {
+      _controller.repeat();
+    } else if (!widget.isSyncing && _controller.isAnimating) {
+      _controller.stop();
+      _controller.reset();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RotationTransition(
+      turns: _controller,
+      child: Icon(Icons.sync_rounded, size: 16, color: widget.color),
+    );
+  }
+}
+
 class _ChangeNameDialog extends ConsumerStatefulWidget {
   const _ChangeNameDialog();
 
@@ -1124,27 +1122,33 @@ class _ChangeNameDialogState extends ConsumerState<_ChangeNameDialog> {
         ],
       ),
       actions: [
-        TextButton(
-          onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
-          style: TextButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+        Expanded(
+          child: TextButton(
+            onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+            style: TextButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.15),
+              foregroundColor: Theme.of(context).colorScheme.onSurface,
+              minimumSize: const Size(double.infinity, 56),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
             ),
-          ),
-          child: const Text(
-            'Cancel',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ),
         const SizedBox(width: 8),
-        PrimaryButton(
-          width: null,
-          text: 'Save',
-          isLoading: _isLoading,
-          color: Theme.of(context).colorScheme.primary,
-          textColor: Theme.of(context).colorScheme.onPrimary,
-          onPressed: () async {
+        Expanded(
+          child: PrimaryButton(
+            width: double.infinity,
+            text: 'Save',
+            isLoading: _isLoading,
+            color: Theme.of(context).colorScheme.primary,
+            textColor: Theme.of(context).colorScheme.onPrimary,
+            onPressed: () async {
             if (_nameController.text.trim().isEmpty) return;
             final newName = _nameController.text.trim();
             setState(() {
@@ -1192,6 +1196,7 @@ class _ChangeNameDialogState extends ConsumerState<_ChangeNameDialog> {
               }
             }
           },
+        ),
         ),
       ],
     );
@@ -1352,27 +1357,33 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
         ],
       ),
       actions: [
-        TextButton(
-          onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
-          style: TextButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+        Expanded(
+          child: TextButton(
+            onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+            style: TextButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.15),
+              foregroundColor: Theme.of(context).colorScheme.onSurface,
+              minimumSize: const Size(double.infinity, 56),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
             ),
-          ),
-          child: const Text(
-            'Cancel',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ),
         const SizedBox(width: 8),
-        PrimaryButton(
-          width: null,
-          text: 'Save',
-          isLoading: _isLoading,
-          color: Theme.of(context).colorScheme.primary,
-          textColor: Theme.of(context).colorScheme.onPrimary,
-          onPressed: () async {
+        Expanded(
+          child: PrimaryButton(
+            width: double.infinity,
+            text: 'Save',
+            isLoading: _isLoading,
+            color: Theme.of(context).colorScheme.primary,
+            textColor: Theme.of(context).colorScheme.onPrimary,
+            onPressed: () async {
             final oldPass = _oldPasswordController.text.trim();
             final newPass = _newPasswordController.text.trim();
             final confirmPass = _confirmPasswordController.text.trim();
@@ -1442,6 +1453,7 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
               }
             }
           },
+        ),
         ),
       ],
     );
@@ -1583,27 +1595,33 @@ class _SetPasswordDialogState extends ConsumerState<_SetPasswordDialog> {
         ],
       ),
       actions: [
-        TextButton(
-          onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
-          style: TextButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+        Expanded(
+          child: TextButton(
+            onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+            style: TextButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.15),
+              foregroundColor: Theme.of(context).colorScheme.onSurface,
+              minimumSize: const Size(double.infinity, 56),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
             ),
-          ),
-          child: const Text(
-            'Cancel',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ),
         const SizedBox(width: 8),
-        PrimaryButton(
-          width: null,
-          text: 'Save',
-          isLoading: _isLoading,
-          color: Theme.of(context).colorScheme.primary,
-          textColor: Theme.of(context).colorScheme.onPrimary,
-          onPressed: () async {
+        Expanded(
+          child: PrimaryButton(
+            width: double.infinity,
+            text: 'Save',
+            isLoading: _isLoading,
+            color: Theme.of(context).colorScheme.primary,
+            textColor: Theme.of(context).colorScheme.onPrimary,
+            onPressed: () async {
             final newPass = _newPasswordController.text.trim();
             final confirmPass = _confirmPasswordController.text.trim();
 
@@ -1665,6 +1683,7 @@ class _SetPasswordDialogState extends ConsumerState<_SetPasswordDialog> {
             }
           },
         ),
+        ),
       ],
     );
   }
@@ -1689,23 +1708,29 @@ class _LogoutDialogState extends ConsumerState<_LogoutDialog> {
         textAlign: TextAlign.center,
       ),
       actions: [
-        TextButton(
-          onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
-          style: TextButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+        Expanded(
+          child: TextButton(
+            onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+            style: TextButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.15),
+              foregroundColor: Theme.of(context).colorScheme.onSurface,
+              minimumSize: const Size(double.infinity, 56),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
             ),
-          ),
-          child: const Text(
-            'Cancel',
-            style: TextStyle(fontWeight: FontWeight.bold),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ),
         const SizedBox(width: 8),
-        PrimaryButton(
-          width: null,
-          text: 'Log Out',
+        Expanded(
+          child: PrimaryButton(
+            width: double.infinity,
+            text: 'Log Out',
           isLoading: _isLoading,
           color: AppColors.expenseAccent,
           textColor: Colors.white,
@@ -1717,6 +1742,132 @@ class _LogoutDialogState extends ConsumerState<_LogoutDialog> {
               context.go(RoutePaths.login);
             }
           },
+        ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DeleteAccountDialog extends ConsumerStatefulWidget {
+  const _DeleteAccountDialog();
+
+  @override
+  ConsumerState<_DeleteAccountDialog> createState() =>
+      _DeleteAccountDialogState();
+}
+
+class _DeleteAccountDialogState extends ConsumerState<_DeleteAccountDialog> {
+  bool _isLoading = false;
+  String? _errorMessage;
+  String _confirmationText = '';
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassDialog(
+      title: 'Delete Account',
+      icon: Icon(
+        Icons.warning_amber_rounded,
+        color: AppColors.expenseAccent,
+        size: 48,
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Are you sure you want to delete your account? This action is permanent and cannot be undone.',
+          ),
+          if (_errorMessage != null) ...[
+            const SizedBox(height: 16),
+            Text(
+              _errorMessage!,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.error,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+          const SizedBox(height: 16),
+          Text(
+            'Type "DELETE" to confirm:',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          GlassCard(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 4,
+            ),
+            child: TextField(
+              onChanged: (val) {
+                setState(() {
+                  _confirmationText = val;
+                });
+              },
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                hintText: 'DELETE',
+              ),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        Expanded(
+          child: TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            style: TextButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.15),
+              foregroundColor: Theme.of(context).colorScheme.onSurface,
+              minimumSize: const Size(double.infinity, 56),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 12,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: PrimaryButton(
+            width: double.infinity,
+            text: 'Delete',
+          isLoading: _isLoading,
+          color: AppColors.expenseAccent,
+          textColor: Colors.white,
+          onPressed: _confirmationText == 'DELETE'
+              ? () async {
+                  setState(() {
+                    _isLoading = true;
+                    _errorMessage = null;
+                  });
+                  try {
+                    await ref.read(authProvider.notifier).deleteAccount();
+                    if (context.mounted) {
+                      Navigator.of(context).pop();
+                      context.go(RoutePaths.login);
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      setState(() {
+                        _isLoading = false;
+                        _errorMessage = e.toString();
+                      });
+                    }
+                  }
+                }
+              : () {},
+        ),
         ),
       ],
     );

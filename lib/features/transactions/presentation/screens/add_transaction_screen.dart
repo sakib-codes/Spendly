@@ -9,6 +9,7 @@ import 'package:spendly/shared/widgets/custom_header.dart';
 import 'package:spendly/shared/widgets/glass_date_picker.dart';
 import 'package:spendly/shared/widgets/glass_time_picker.dart';
 import 'package:spendly/shared/widgets/primary_button.dart';
+import 'package:spendly/shared/providers/preferences_provider.dart';
 import 'package:spendly/shared/providers/transaction_provider.dart';
 import 'package:spendly/shared/providers/category_provider.dart';
 import 'package:spendly/domain/entities/transaction.dart';
@@ -34,6 +35,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   DateTime _selectedDate = DateTime.now();
   String _selectedPaymentMethod = 'Cash';
   final TextEditingController _amountController = TextEditingController();
+  final FocusNode _amountFocusNode = FocusNode();
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
 
@@ -47,6 +49,8 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   @override
   void initState() {
     super.initState();
+    _amountFocusNode.addListener(_onAmountStateChange);
+    _amountController.addListener(_onAmountStateChange);
     if (widget.transactionToEdit != null) {
       final t = widget.transactionToEdit!;
       isExpense = t.type == TransactionType.expense;
@@ -60,8 +64,15 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     }
   }
 
+  void _onAmountStateChange() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
+    _amountFocusNode.removeListener(_onAmountStateChange);
+    _amountFocusNode.dispose();
+    _amountController.removeListener(_onAmountStateChange);
     _amountController.dispose();
     _titleController.dispose();
     _noteController.dispose();
@@ -70,7 +81,6 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final categoriesState = ref.watch(categoryProvider);
 
     // If editing, try to pre-select the category once categories are loaded
@@ -370,57 +380,227 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     );
   }
 
+  String _getCurrencySymbol(String currencyPref) {
+    final match = RegExp(r'\((.*?)\)').firstMatch(currencyPref);
+    return match?.group(1) ?? '৳';
+  }
+
   Widget _buildAmountInput(BuildContext context) {
     final theme = Theme.of(context);
+    final preferences = ref.watch(preferencesProvider);
+    final currencySymbol = _getCurrencySymbol(preferences.currency);
+    final accentColor = isExpense
+        ? AppColors.expenseAccent
+        : AppColors.incomeAccent;
+    final hasValue = _amountController.text.isNotEmpty;
+    final isFocused = _amountFocusNode.hasFocus;
+    final textLength = _amountController.text.length;
 
-    return Column(
-      children: [
-        Text(
-          'AMOUNT',
-          style: theme.textTheme.labelSmall?.copyWith(
-            letterSpacing: 1.5,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
+    // Dynamic font size — shrinks as number gets longer
+    double fontSize;
+    if (textLength <= 5) {
+      fontSize = 42;
+    } else if (textLength <= 7) {
+      fontSize = 34;
+    } else {
+      fontSize = 26;
+    }
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOutCubic,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: isFocused
+            ? [
+                BoxShadow(
+                  color: accentColor.withValues(alpha: 0.18),
+                  blurRadius: 16,
+                  spreadRadius: 1,
+                ),
+              ]
+            : [],
+      ),
+      child: GlassCard(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        child: Column(
           children: [
-            Text(
-              '৳',
-              style: theme.textTheme.headlineMedium?.copyWith(
-                color: isExpense
-                    ? AppColors.expenseAccent
-                    : AppColors.incomeAccent,
-                fontWeight: FontWeight.bold,
+            // ── Micro-label ──
+            AnimatedOpacity(
+              opacity: (!hasValue || isFocused) ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 200),
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  'Enter amount',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    letterSpacing: 0.5,
+                    fontWeight: FontWeight.w500,
+                    color: theme.colorScheme.onSurfaceVariant
+                        .withValues(alpha: 0.5),
+                  ),
+                ),
               ),
             ),
-            const SizedBox(width: 4),
-            IntrinsicWidth(
-              child: TextField(
-                controller: _amountController,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+            // ── Amount Display Row ──
+            GestureDetector(
+              onTap: () {
+                _amountFocusNode.requestFocus();
+              },
+              behavior: HitTestBehavior.opaque,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Currency symbol
+                  AnimatedDefaultTextStyle(
+                    duration: const Duration(milliseconds: 200),
+                    style: TextStyle(
+                      fontSize: fontSize * 0.65,
+                      color: accentColor,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    child: Text(currencySymbol),
+                  ),
+                  const SizedBox(width: 4),
+                  // Amount text field — bounded IntrinsicWidth prevents overflow
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.of(context).size.width - 140,
+                    ),
+                    child: IntrinsicWidth(
+                      child: TextField(
+                        controller: _amountController,
+                        focusNode: _amountFocusNode,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                            RegExp(r'^\d*\.?\d{0,2}'),
+                          ),
+                          LengthLimitingTextInputFormatter(12),
+                        ],
+                        style: TextStyle(
+                          fontSize: fontSize,
+                          color: theme.colorScheme.onSurface,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.left,
+                        cursorColor: accentColor,
+                        cursorHeight: fontSize * 0.85,
+                        cursorWidth: 2.5,
+                        cursorRadius: const Radius.circular(2),
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                          isCollapsed: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 8,
+                          ),
+                          hintText: '0',
+                          hintStyle: TextStyle(
+                            fontSize: 42,
+                            color: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.15,
+                            ),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Clear icon — only visible when there's a value
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeOutCubic,
+                    child: hasValue
+                        ? Padding(
+                            padding: const EdgeInsets.only(left: 6),
+                            child: GestureDetector(
+                              onTap: () {
+                                HapticFeedback.selectionClick();
+                                _amountController.clear();
+                                _amountFocusNode.requestFocus();
+                                setState(() {});
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(5),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.onSurface
+                                      .withValues(alpha: 0.07),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.close_rounded,
+                                  size: 14,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                          )
+                        : const SizedBox.shrink(),
+                  ),
                 ],
-                style: theme.textTheme.displayMedium?.copyWith(
-                  color: theme.colorScheme.onSurface,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  hintText: '0.00',
-                  constraints: BoxConstraints(minWidth: 50),
-                ),
               ),
             ),
+            const SizedBox(height: 18),
+            // ── Quick-Add Chips ──
+            _buildQuickPresetChips(accentColor),
           ],
         ),
-      ],
+      ),
+    );
+  }
+
+  Widget _buildQuickPresetChips(Color accentColor) {
+    final theme = Theme.of(context);
+    final presets = [100, 500, 1000, 5000];
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: presets.map((amount) {
+        final label = amount >= 1000 ? '+${amount ~/ 1000}k' : '+$amount';
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                final current =
+                    double.tryParse(_amountController.text) ?? 0.0;
+                final next = current + amount;
+                final formatted = next == next.truncateToDouble()
+                    ? next.toInt().toString()
+                    : next.toStringAsFixed(2);
+                _amountController.text = formatted;
+                _amountController.selection = TextSelection.collapsed(
+                  offset: formatted.length,
+                );
+                setState(() {});
+              },
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  label,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: accentColor,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 

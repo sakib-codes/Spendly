@@ -79,31 +79,31 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
           Positioned(
             top: size.height * 0.15,
             left: -80,
-            child: Container(
-              width: 280,
-              height: 280,
-              decoration: BoxDecoration(
-                color: AppColors.incomeAccent.withValues(alpha: 0.12),
-                shape: BoxShape.circle,
+            child: ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
+              child: Container(
+                width: 280,
+                height: 280,
+                decoration: BoxDecoration(
+                  color: AppColors.incomeAccent.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
               ),
             ),
           ),
           Positioned(
             bottom: size.height * 0.15,
             right: -80,
-            child: Container(
-              width: 280,
-              height: 280,
-              decoration: BoxDecoration(
-                color: AppColors.expenseAccent.withValues(alpha: 0.12),
-                shape: BoxShape.circle,
+            child: ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
+              child: Container(
+                width: 280,
+                height: 280,
+                decoration: BoxDecoration(
+                  color: AppColors.expenseAccent.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
               ),
-            ),
-          ),
-          Positioned.fill(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
-              child: Container(color: Colors.transparent),
             ),
           ),
 

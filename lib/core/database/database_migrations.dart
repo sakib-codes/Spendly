@@ -12,6 +12,7 @@ class DatabaseMigrations {
         ${CategoryFields.name} TEXT NOT NULL,
         ${CategoryFields.icon} TEXT NOT NULL,
         ${CategoryFields.type} TEXT NOT NULL,
+        ${CategoryFields.sortOrder} INTEGER NOT NULL DEFAULT 0,
         ${CategoryFields.createdAt} INTEGER NOT NULL,
         ${CategoryFields.updatedAt} INTEGER NOT NULL,
         ${CategoryFields.isSynced} INTEGER NOT NULL DEFAULT 0,
@@ -86,34 +87,53 @@ class DatabaseMigrations {
       'Entertainment': 'entertainment',
       'Health': 'health',
       'Education': 'education',
+      'Home': 'home',
+      'Childcare': 'child',
+      'Fitness': 'fitness',
+      'Groceries': 'groceries',
+      'Travel': 'travel',
+      'Pets': 'pets',
+      'Personal Care': 'personal_care',
+      'Subscriptions': 'subscriptions',
+      'Donations': 'donations',
       'Other': 'other',
     };
+    int expenseSortOrder = 0;
     for (var entry in expenses.entries) {
       await db.insert(DatabaseTables.categories, {
         CategoryFields.id: uuid.v4(),
         CategoryFields.name: entry.key,
         CategoryFields.icon: entry.value,
         CategoryFields.type: 'expense',
+        CategoryFields.sortOrder: expenseSortOrder++,
         CategoryFields.createdAt: now,
+        CategoryFields.updatedAt: now,
       });
     }
 
     // Default Income Categories
     final incomes = {
       'Salary': 'salary',
-      'Freelance': 'freelance',
       'Business': 'business',
       'Investment': 'investment',
+      'Savings': 'savings',
+      'Cash': 'cash',
+      'Freelance': 'freelance',
       'Gift': 'gift',
+      'Bonus': 'bonus',
+      'Refunds': 'refunds',
       'Other': 'other',
     };
+    int incomeSortOrder = 0;
     for (var entry in incomes.entries) {
       await db.insert(DatabaseTables.categories, {
         CategoryFields.id: uuid.v4(),
         CategoryFields.name: entry.key,
         CategoryFields.icon: entry.value,
         CategoryFields.type: 'income',
+        CategoryFields.sortOrder: incomeSortOrder++,
         CategoryFields.createdAt: now,
+        CategoryFields.updatedAt: now,
       });
     }
   }
@@ -178,6 +198,119 @@ class DatabaseMigrations {
       await db.execute('ALTER TABLE ${DatabaseTables.budgets} ADD COLUMN ${BudgetFields.updatedAt} INTEGER NOT NULL DEFAULT 0');
       await db.execute('ALTER TABLE ${DatabaseTables.budgets} ADD COLUMN ${BudgetFields.isSynced} INTEGER NOT NULL DEFAULT 0');
       await db.execute('ALTER TABLE ${DatabaseTables.budgets} ADD COLUMN ${BudgetFields.deletedAt} INTEGER');
+    }
+
+    if (oldVersion < 5) {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      const uuid = Uuid();
+
+      // Insert missing new default categories if they don't exist
+      final newExpenses = {
+        'Home': 'home',
+        'Childcare': 'child',
+        'Fitness': 'fitness',
+      };
+      
+      for (var entry in newExpenses.entries) {
+        final List<Map> result = await db.query(
+          DatabaseTables.categories,
+          where: '${CategoryFields.name} = ?',
+          whereArgs: [entry.key],
+        );
+        if (result.isEmpty) {
+          await db.insert(DatabaseTables.categories, {
+            CategoryFields.id: uuid.v4(),
+            CategoryFields.name: entry.key,
+            CategoryFields.icon: entry.value,
+            CategoryFields.type: 'expense',
+            CategoryFields.createdAt: now,
+            CategoryFields.updatedAt: now,
+          });
+        }
+      }
+
+      final newIncomes = {
+        'Savings': 'savings',
+        'Cash': 'cash',
+      };
+      
+      for (var entry in newIncomes.entries) {
+        final List<Map> result = await db.query(
+          DatabaseTables.categories,
+          where: '${CategoryFields.name} = ?',
+          whereArgs: [entry.key],
+        );
+        if (result.isEmpty) {
+          await db.insert(DatabaseTables.categories, {
+            CategoryFields.id: uuid.v4(),
+            CategoryFields.name: entry.key,
+            CategoryFields.icon: entry.value,
+            CategoryFields.type: 'income',
+            CategoryFields.createdAt: now,
+            CategoryFields.updatedAt: now,
+          });
+        }
+      }
+    }
+
+    if (oldVersion < 6) {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      const uuid = Uuid();
+
+      // Insert missing new default categories if they don't exist
+      final newExpenses = {
+        'Groceries': 'groceries',
+        'Travel': 'travel',
+        'Pets': 'pets',
+        'Personal Care': 'personal_care',
+        'Subscriptions': 'subscriptions',
+        'Donations': 'donations',
+      };
+      
+      for (var entry in newExpenses.entries) {
+        final List<Map> result = await db.query(
+          DatabaseTables.categories,
+          where: '${CategoryFields.name} = ?',
+          whereArgs: [entry.key],
+        );
+        if (result.isEmpty) {
+          await db.insert(DatabaseTables.categories, {
+            CategoryFields.id: uuid.v4(),
+            CategoryFields.name: entry.key,
+            CategoryFields.icon: entry.value,
+            CategoryFields.type: 'expense',
+            CategoryFields.createdAt: now,
+            CategoryFields.updatedAt: now,
+          });
+        }
+      }
+
+      final newIncomes = {
+        'Bonus': 'bonus',
+        'Refunds': 'refunds',
+      };
+      
+      for (var entry in newIncomes.entries) {
+        final List<Map> result = await db.query(
+          DatabaseTables.categories,
+          where: '${CategoryFields.name} = ?',
+          whereArgs: [entry.key],
+        );
+        if (result.isEmpty) {
+          await db.insert(DatabaseTables.categories, {
+            CategoryFields.id: uuid.v4(),
+            CategoryFields.name: entry.key,
+            CategoryFields.icon: entry.value,
+            CategoryFields.type: 'income',
+            CategoryFields.createdAt: now,
+            CategoryFields.updatedAt: now,
+          });
+        }
+      }
+    }
+
+    if (oldVersion < 7) {
+      await db.execute('ALTER TABLE ${DatabaseTables.categories} ADD COLUMN ${CategoryFields.sortOrder} INTEGER NOT NULL DEFAULT 0');
     }
   }
 }

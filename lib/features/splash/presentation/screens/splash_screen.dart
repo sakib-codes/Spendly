@@ -8,6 +8,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/router/route_names.dart';
 import '../../../../app/theme/app_colors.dart';
 import '../../../auth/providers/auth_provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:spendly/shared/services/profile_photo_cache.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -47,6 +49,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       if (mounted) {
         final authState = ref.read(authProvider);
         if (authState == AuthStatus.authenticated) {
+          // Pre-load the profile photo cache so it's ready when they visit profile
+          final user = FirebaseAuth.instance.currentUser;
+          ProfilePhotoCache.instance.load(user?.photoURL);
           context.go(RoutePaths.home);
         } else {
           context.go(RoutePaths.login);
@@ -74,32 +79,31 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           Positioned(
             top: size.height * 0.15,
             left: -50,
-            child: Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                color: AppColors.incomeAccent.withValues(alpha: 0.15),
-                shape: BoxShape.circle,
+            child: ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
+              child: Container(
+                width: 300,
+                height: 300,
+                decoration: BoxDecoration(
+                  color: AppColors.incomeAccent.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
               ),
             ),
           ),
           Positioned(
             bottom: size.height * 0.15,
             right: -50,
-            child: Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                color: AppColors.expenseAccent.withValues(alpha: 0.15),
-                shape: BoxShape.circle,
+            child: ImageFiltered(
+              imageFilter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
+              child: Container(
+                width: 300,
+                height: 300,
+                decoration: BoxDecoration(
+                  color: AppColors.expenseAccent.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
               ),
-            ),
-          ),
-          // Blur overlay for mesh gradient effect
-          Positioned.fill(
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
-              child: Container(color: Colors.transparent),
             ),
           ),
           // Foreground Content
