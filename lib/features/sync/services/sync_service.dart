@@ -11,6 +11,37 @@ class SyncService {
   // Live Render backend URL
   static const String baseUrl = 'https://spendly-o4hk.onrender.com';
 
+  static final ValueNotifier<bool> isSyncingNotifier = ValueNotifier<bool>(false);
+  static final ValueNotifier<int> pendingCountNotifier = ValueNotifier<int>(0);
+
+  Future<int> refreshPendingCount() async {
+    try {
+      final db = await AppDatabase.instance;
+      final catCount = Sqflite.firstIntValue(await db.rawQuery(
+        'SELECT COUNT(*) FROM ${DatabaseTables.categories} WHERE ${CategoryFields.isSynced} = 0',
+      )) ?? 0;
+      final txnCount = Sqflite.firstIntValue(await db.rawQuery(
+        'SELECT COUNT(*) FROM ${DatabaseTables.transactions} WHERE ${TransactionFields.isSynced} = 0',
+      )) ?? 0;
+      final budCount = Sqflite.firstIntValue(await db.rawQuery(
+        'SELECT COUNT(*) FROM ${DatabaseTables.budgets} WHERE ${BudgetFields.isSynced} = 0',
+      )) ?? 0;
+      final total = catCount + txnCount + budCount;
+      pendingCountNotifier.value = total;
+      return total;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  Future<DateTime?> getLastSyncTime() async {
+    final prefs = await SharedPreferences.getInstance();
+    final timeStr = prefs.getString('last_successful_sync_time') ??
+        prefs.getString('last_sync_timestamp');
+    if (timeStr == null || timeStr.isEmpty) return null;
+    return DateTime.tryParse(timeStr);
+  }
+
   String _formatTimestamp(dynamic epochMs) {
     if (epochMs == null || epochMs == 0) {
       return DateTime.now().toUtc().toIso8601String();
@@ -77,31 +108,33 @@ class SyncService {
     final token = await user.getIdToken();
     if (token == null) return false;
 
-    final db = await AppDatabase.instance;
+    isSyncingNotifier.value = true;
+    try {
+      final db = await AppDatabase.instance;
 
-    final unsyncedCategories = await db.query(
-      DatabaseTables.categories,
-      where: '${CategoryFields.isSynced} = ?',
-      whereArgs: [0],
-    );
+      final unsyncedCategories = await db.query(
+        DatabaseTables.categories,
+        where: '${CategoryFields.isSynced} = ?',
+        whereArgs: [0],
+      );
 
-    final unsyncedTransactions = await db.query(
-      DatabaseTables.transactions,
-      where: '${TransactionFields.isSynced} = ?',
-      whereArgs: [0],
-    );
+      final unsyncedTransactions = await db.query(
+        DatabaseTables.transactions,
+        where: '${TransactionFields.isSynced} = ?',
+        whereArgs: [0],
+      );
 
-    final unsyncedBudgets = await db.query(
-      DatabaseTables.budgets,
-      where: '${BudgetFields.isSynced} = ?',
-      whereArgs: [0],
-    );
+      final unsyncedBudgets = await db.query(
+        DatabaseTables.budgets,
+        where: '${BudgetFields.isSynced} = ?',
+        whereArgs: [0],
+      );
 
-    if (unsyncedCategories.isEmpty &&
-        unsyncedTransactions.isEmpty &&
-        unsyncedBudgets.isEmpty) {
-      return true; // Nothing to sync
-    }
+      if (unsyncedCategories.isEmpty &&
+          unsyncedTransactions.isEmpty &&
+          unsyncedBudgets.isEmpty) {
+        return true; // Nothing to sync
+      }
 
     // Format categories with ISO dates and snake_case backend keys
     final categoriesPayload = unsyncedCategories.map((c) {
@@ -159,15 +192,14 @@ class SyncService {
       'budgets': budgetsPayload,
     };
 
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/sync/push'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(pushData),
-      );
+    final response = await http.post(
+      Uri.parse('$baseUrl/sync/push'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(pushData),
+    );
 
       if (response.statusCode == 200) {
         // Mark items as synced locally
@@ -203,6 +235,11 @@ class SyncService {
             '${transactionsPayload.length} txns, ${budgetsPayload.length} budgets',
           );
         }
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(
+          'last_successful_sync_time',
+          DateTime.now().toUtc().toIso8601String(),
+        );
         return true;
       } else {
         if (kDebugMode) {
@@ -215,6 +252,9 @@ class SyncService {
         debugPrint('Sync push error: $e');
       }
       return false;
+    } finally {
+      isSyncingNotifier.value = false;
+      await refreshPendingCount();
     }
   }
 
@@ -359,6 +399,10 @@ class SyncService {
             data['server_timestamp'].toString(),
           );
         }
+        await prefs.setString(
+          'last_successful_sync_time',
+          DateTime.now().toUtc().toIso8601String(),
+        );
 
         if (kDebugMode) {
           debugPrint('Sync pull succeeded.');
@@ -375,14 +419,31 @@ class SyncService {
         debugPrint('Sync pull error: $e');
       }
       return false;
+    } finally {
+      await refreshPendingCount();
     }
   }
 
-  Future<void> syncAll() async {
-    await syncUser();
-    final pushed = await push();
-    if (pushed) {
-      await pull();
+  Future<bool> syncAll() async {
+    isSyncingNotifier.value = true;
+    try {
+      await syncUser();
+      final pushed = await push();
+      if (pushed) {
+        final pulled = await pull();
+        if (pulled) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(
+            'last_successful_sync_time',
+            DateTime.now().toUtc().toIso8601String(),
+          );
+          return true;
+        }
+      }
+      return false;
+    } finally {
+      isSyncingNotifier.value = false;
+      await refreshPendingCount();
     }
   }
 }

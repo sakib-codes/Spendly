@@ -17,6 +17,9 @@ import 'package:spendly/shared/widgets/glass_dialog.dart';
 import 'package:spendly/shared/widgets/primary_button.dart';
 import 'package:spendly/shared/widgets/custom_license_page.dart';
 import 'package:spendly/shared/widgets/glass_toast.dart';
+import 'package:spendly/shared/services/profile_photo_cache.dart';
+import 'package:intl/intl.dart';
+import 'package:spendly/features/sync/providers/sync_provider.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -127,6 +130,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 },
               ),
             ]),
+            const SizedBox(height: 32),
+            _buildCloudSyncSection(context, ref),
             const SizedBox(height: 32),
             _buildSection(context, 'DATA & SECURITY', [
               _buildSettingItem(
@@ -387,7 +392,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget _buildHeader(BuildContext context) {
     final theme = Theme.of(context);
     final user = FirebaseAuth.instance.currentUser;
-    final photoUrl = user?.photoURL;
     final displayName = user?.displayName ?? 'User';
 
     return Column(
@@ -397,21 +401,26 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           child: Stack(
             alignment: Alignment.bottomRight,
             children: [
-              CircleAvatar(
-                radius: 50,
-                backgroundColor: theme.colorScheme.primary.withValues(
-                  alpha: 0.2,
-                ),
-                backgroundImage: photoUrl != null
-                    ? NetworkImage(photoUrl)
-                    : null,
-                child: photoUrl == null
-                    ? Icon(
-                        Icons.person_rounded,
-                        size: 50,
-                        color: theme.colorScheme.primary,
-                      )
-                    : null,
+              ValueListenableBuilder<File?>(
+                valueListenable: ProfilePhotoCache.instance.photoNotifier,
+                builder: (context, cachedFile, _) {
+                  return CircleAvatar(
+                    radius: 50,
+                    backgroundColor: theme.colorScheme.primary.withValues(
+                      alpha: 0.2,
+                    ),
+                    backgroundImage: cachedFile != null && cachedFile.existsSync()
+                        ? FileImage(cachedFile)
+                        : null,
+                    child: cachedFile == null || !cachedFile.existsSync()
+                        ? Icon(
+                            Icons.person_rounded,
+                            size: 50,
+                            color: theme.colorScheme.primary,
+                          )
+                        : null,
+                  );
+                },
               ),
               if (_isUploading)
                 const Positioned.fill(
@@ -506,6 +515,333 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildCloudSyncSection(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final syncState = ref.watch(syncProvider);
+
+    IconData statusIcon;
+    Color iconColor;
+    String statusTitle;
+    String statusSubtitle;
+
+    switch (syncState.status) {
+      case SyncStatus.syncing:
+        statusIcon = Icons.sync_rounded;
+        iconColor = theme.colorScheme.primary;
+        statusTitle = 'Syncing to Cloud...';
+        statusSubtitle = 'Uploading changes to Neon database';
+        break;
+      case SyncStatus.offline:
+        statusIcon = Icons.cloud_off_rounded;
+        iconColor = AppColors.warningAccent;
+        statusTitle = 'Offline Mode';
+        statusSubtitle = syncState.pendingCount > 0
+            ? '${syncState.pendingCount} local ${syncState.pendingCount == 1 ? "change" : "changes"} will sync when online'
+            : 'Changes saved locally on device';
+        break;
+      case SyncStatus.error:
+        statusIcon = Icons.cloud_queue_rounded;
+        iconColor = AppColors.expenseAccent;
+        statusTitle = 'Sync Interrupted';
+        statusSubtitle = syncState.errorMessage ?? 'Tap to retry cloud sync';
+        break;
+      case SyncStatus.synced:
+        statusIcon = Icons.cloud_done_rounded;
+        iconColor = AppColors.incomeAccent;
+        statusTitle = 'Cloud Backup Active';
+        statusSubtitle = syncState.pendingCount > 0
+            ? '${syncState.pendingCount} local changes pending'
+            : 'All data backed up • ${_formatLastSync(syncState.lastSyncTime)}';
+        break;
+    }
+
+    return _buildSection(context, 'CLOUD BACKUP', [
+      InkWell(
+        onTap: () => _showCloudSyncDetailsDialog(context, ref, syncState),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: iconColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: syncState.status == SyncStatus.syncing
+                      ? SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            valueColor: AlwaysStoppedAnimation<Color>(iconColor),
+                          ),
+                        )
+                      : Icon(statusIcon, color: iconColor, size: 24),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      statusTitle,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      statusSubtitle,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              // "Sync" tactile button
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: syncState.status == SyncStatus.syncing
+                      ? null
+                      : () async {
+                          final success = await ref
+                              .read(syncProvider.notifier)
+                              .syncNow();
+                          if (context.mounted) {
+                            GlassToast.show(
+                              context: context,
+                              message: success
+                                  ? 'Cloud sync complete!'
+                                  : 'Sync failed: saved locally on device',
+                            );
+                          }
+                        },
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.25),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.refresh_rounded,
+                          size: 14,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Sync',
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ]);
+  }
+
+  String _formatLastSync(DateTime? time) {
+    if (time == null) return 'Never';
+    final now = DateTime.now();
+    final diff = now.difference(time.toLocal());
+    if (diff.inSeconds < 45) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return DateFormat('MMM d, h:mm a').format(time.toLocal());
+  }
+
+  void _showCloudSyncDetailsDialog(
+    BuildContext context,
+    WidgetRef ref,
+    SyncState syncState,
+  ) {
+    final theme = Theme.of(context);
+    final user = FirebaseAuth.instance.currentUser;
+    final lastSyncFormatted = syncState.lastSyncTime != null
+        ? DateFormat('MMM d, yyyy • h:mm:ss a')
+            .format(syncState.lastSyncTime!.toLocal())
+        : 'Never';
+
+    GlassDialog.show(
+      context: context,
+      title: 'Cloud Synchronization',
+      icon: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primary.withValues(alpha: 0.12),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          Icons.cloud_sync_rounded,
+          color: theme.colorScheme.primary,
+          size: 32,
+        ),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildDetailRow(
+            context,
+            'Database',
+            'Neon (PostgreSQL)',
+            Icons.storage_rounded,
+          ),
+          const SizedBox(height: 12),
+          _buildDetailRow(
+            context,
+            'Backend Service',
+            'Render (FastAPI)',
+            Icons.cloud_queue_rounded,
+          ),
+          const SizedBox(height: 12),
+          _buildDetailRow(
+            context,
+            'Account',
+            user?.email ?? 'Logged in user',
+            Icons.account_circle_outlined,
+          ),
+          const SizedBox(height: 12),
+          _buildDetailRow(
+            context,
+            'Unsynced Changes',
+            syncState.pendingCount == 0
+                ? 'All synced (0)'
+                : '${syncState.pendingCount} pending',
+            Icons.pending_actions_rounded,
+            highlightColor: syncState.pendingCount > 0
+                ? AppColors.warningAccent
+                : AppColors.incomeAccent,
+          ),
+          const SizedBox(height: 12),
+          _buildDetailRow(
+            context,
+            'Last Backup',
+            lastSyncFormatted,
+            Icons.access_time_rounded,
+          ),
+        ],
+      ),
+      actions: [
+        Expanded(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              PrimaryButton(
+                text: syncState.status == SyncStatus.syncing
+                    ? 'Syncing...'
+                    : 'Sync Now',
+                isLoading: syncState.status == SyncStatus.syncing,
+                onPressed: () {
+                  if (syncState.status == SyncStatus.syncing) return;
+                  Navigator.of(context, rootNavigator: true).pop();
+                  ref.read(syncProvider.notifier).syncNow().then((success) {
+                    if (context.mounted) {
+                      GlassToast.show(
+                        context: context,
+                        message: success
+                            ? 'Cloud backup complete!'
+                            : 'Sync failed. Saved locally on device.',
+                      );
+                    }
+                  });
+                },
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () =>
+                    Navigator.of(context, rootNavigator: true).pop(),
+                child: Text(
+                  'Close',
+                  style: TextStyle(color: theme.colorScheme.onSurface),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDetailRow(
+    BuildContext context,
+    String label,
+    String value,
+    IconData icon, {
+    Color? highlightColor,
+  }) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color:
+            theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.08),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            size: 18,
+            color: highlightColor ?? theme.colorScheme.primary,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              value,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: highlightColor ?? theme.colorScheme.onSurface,
+              ),
+              textAlign: TextAlign.end,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
