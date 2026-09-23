@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spendly/core/database/app_database.dart';
@@ -8,14 +9,73 @@ import 'package:sqflite/sqflite.dart';
 
 class SyncService {
   // Live Render backend URL
-  static const String baseUrl = 'https://spendly-o4hk.onrender.com/sync';
+  static const String baseUrl = 'https://spendly-o4hk.onrender.com';
 
-  Future<void> push() async {
+  String _formatTimestamp(dynamic epochMs) {
+    if (epochMs == null || epochMs == 0) {
+      return DateTime.now().toUtc().toIso8601String();
+    }
+    return DateTime.fromMillisecondsSinceEpoch(epochMs as int, isUtc: true)
+        .toIso8601String();
+  }
+
+  String? _formatNullableTimestamp(dynamic epochMs) {
+    if (epochMs == null || epochMs == 0) return null;
+    return DateTime.fromMillisecondsSinceEpoch(epochMs as int, isUtc: true)
+        .toIso8601String();
+  }
+
+  int _parseTimestamp(dynamic isoStr) {
+    if (isoStr == null) return DateTime.now().millisecondsSinceEpoch;
+    if (isoStr is int) return isoStr;
+    return DateTime.parse(isoStr.toString()).millisecondsSinceEpoch;
+  }
+
+  int? _parseNullableTimestamp(dynamic isoStr) {
+    if (isoStr == null) return null;
+    if (isoStr is int) return isoStr;
+    return DateTime.parse(isoStr.toString()).millisecondsSinceEpoch;
+  }
+
+  /// Sync user profile to backend
+  Future<void> syncUser() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
     final token = await user.getIdToken();
     if (token == null) return;
+
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/users/'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'firebase_uid': user.uid,
+          'email': user.email ?? '',
+          'full_name': user.displayName ?? '',
+        }),
+      );
+
+      if (kDebugMode) {
+        debugPrint('Sync user response: ${response.statusCode}');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('Sync user error: $e');
+      }
+    }
+  }
+
+  /// Pushes local unsynced changes to Render backend
+  Future<bool> push() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return false;
+
+    final token = await user.getIdToken();
+    if (token == null) return false;
 
     final db = await AppDatabase.instance;
 
@@ -40,22 +100,68 @@ class SyncService {
     if (unsyncedCategories.isEmpty &&
         unsyncedTransactions.isEmpty &&
         unsyncedBudgets.isEmpty) {
-      return; // Nothing to sync
+      return true; // Nothing to sync
     }
 
-    // Add firebase_uid to payload items
+    // Format categories with ISO dates and snake_case backend keys
+    final categoriesPayload = unsyncedCategories.map((c) {
+      return {
+        'id': c[CategoryFields.id],
+        'firebase_uid': user.uid,
+        'name': c[CategoryFields.name],
+        'icon': c[CategoryFields.icon],
+        'type': c[CategoryFields.type],
+        'created_at': _formatTimestamp(c[CategoryFields.createdAt]),
+        'updated_at': _formatTimestamp(c[CategoryFields.updatedAt]),
+        'deleted_at': _formatNullableTimestamp(c[CategoryFields.deletedAt]),
+      };
+    }).toList();
+
+    // Format transactions with ISO dates and snake_case backend keys
+    final transactionsPayload = unsyncedTransactions.map((t) {
+      return {
+        'id': t[TransactionFields.id],
+        'firebase_uid': user.uid,
+        'category_id': t[TransactionFields.categoryId],
+        'title': t[TransactionFields.title],
+        'amount': (t[TransactionFields.amount] as num).toDouble(),
+        'type': t[TransactionFields.type],
+        'date': _formatTimestamp(t[TransactionFields.date]),
+        'payment_method': (t[TransactionFields.paymentMethod] as String?) ?? 'Cash',
+        'note': t[TransactionFields.note] as String?,
+        'created_at': _formatTimestamp(t[TransactionFields.createdAt]),
+        'updated_at': _formatTimestamp(t[TransactionFields.updatedAt]),
+        'deleted_at': _formatNullableTimestamp(t[TransactionFields.deletedAt]),
+      };
+    }).toList();
+
+    // Format budgets with ISO month and snake_case backend keys
+    final budgetsPayload = unsyncedBudgets.map((b) {
+      final month = b[BudgetFields.month] as int;
+      final year = b[BudgetFields.year] as int;
+      final monthDateTime = DateTime.utc(year, month, 1);
+
+      return {
+        'id': b[BudgetFields.id],
+        'firebase_uid': user.uid,
+        'category_id': b[BudgetFields.categoryId],
+        'amount': (b[BudgetFields.amount] as num).toDouble(),
+        'month': monthDateTime.toIso8601String(),
+        'created_at': _formatTimestamp(b[BudgetFields.updatedAt]),
+        'updated_at': _formatTimestamp(b[BudgetFields.updatedAt]),
+        'deleted_at': _formatNullableTimestamp(b[BudgetFields.deletedAt]),
+      };
+    }).toList();
+
     final pushData = {
-      'categories':
-          unsyncedCategories.map((e) => {...e, 'firebase_uid': user.uid}).toList(),
-      'transactions':
-          unsyncedTransactions.map((e) => {...e, 'firebase_uid': user.uid}).toList(),
-      'budgets':
-          unsyncedBudgets.map((e) => {...e, 'firebase_uid': user.uid}).toList(),
+      'categories': categoriesPayload,
+      'transactions': transactionsPayload,
+      'budgets': budgetsPayload,
     };
 
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/push'),
+        Uri.parse('$baseUrl/sync/push'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -91,26 +197,40 @@ class SyncService {
             );
           }
         });
+        if (kDebugMode) {
+          debugPrint(
+            'Sync push succeeded: ${categoriesPayload.length} categories, '
+            '${transactionsPayload.length} txns, ${budgetsPayload.length} budgets',
+          );
+        }
+        return true;
       } else {
-        print('Sync push failed: ${response.statusCode} - ${response.body}');
+        if (kDebugMode) {
+          debugPrint('Sync push failed: ${response.statusCode} - ${response.body}');
+        }
+        return false;
       }
     } catch (e) {
-      print('Sync push error: $e');
+      if (kDebugMode) {
+        debugPrint('Sync push error: $e');
+      }
+      return false;
     }
   }
 
-  Future<void> pull() async {
+  /// Pulls remote updates from Render backend and merges into local SQLite
+  Future<bool> pull() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    if (user == null) return false;
 
     final token = await user.getIdToken();
-    if (token == null) return;
+    if (token == null) return false;
 
     final prefs = await SharedPreferences.getInstance();
     final lastSyncStr = prefs.getString('last_sync_timestamp');
-    
-    Uri pullUri = Uri.parse('$baseUrl/pull');
-    if (lastSyncStr != null) {
+
+    Uri pullUri = Uri.parse('$baseUrl/sync/pull');
+    if (lastSyncStr != null && lastSyncStr.isNotEmpty) {
       pullUri = pullUri.replace(queryParameters: {'last_sync_timestamp': lastSyncStr});
     }
 
@@ -123,69 +243,146 @@ class SyncService {
       );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
         final db = await AppDatabase.instance;
 
         await db.transaction((txn) async {
           // Process pulled Categories
-          if (data['categories'] != null) {
-            for (var item in data['categories']) {
-              item.remove('firebase_uid'); // Clean backend-only field
-              item[CategoryFields.isSynced] = 1;
-              
-              if (item[CategoryFields.deletedAt] != null) {
-                 await txn.delete(DatabaseTables.categories, where: '${CategoryFields.id} = ?', whereArgs: [item[CategoryFields.id]]);
+          if (data['categories'] is List) {
+            for (var item in (data['categories'] as List)) {
+              final id = item['id'] as String;
+              final deletedAt = _parseNullableTimestamp(item['deleted_at']);
+
+              if (deletedAt != null) {
+                await txn.delete(
+                  DatabaseTables.categories,
+                  where: '${CategoryFields.id} = ?',
+                  whereArgs: [id],
+                );
               } else {
-                 await txn.insert(DatabaseTables.categories, Map<String, dynamic>.from(item), conflictAlgorithm: ConflictAlgorithm.replace);
+                await txn.insert(
+                  DatabaseTables.categories,
+                  {
+                    CategoryFields.id: id,
+                    CategoryFields.name: item['name'],
+                    CategoryFields.icon: item['icon'],
+                    CategoryFields.type: item['type'],
+                    CategoryFields.createdAt: _parseTimestamp(item['created_at']),
+                    CategoryFields.updatedAt: _parseTimestamp(item['updated_at']),
+                    CategoryFields.isSynced: 1,
+                    CategoryFields.deletedAt: null,
+                  },
+                  conflictAlgorithm: ConflictAlgorithm.replace,
+                );
               }
             }
           }
 
           // Process pulled Transactions
-          if (data['transactions'] != null) {
-            for (var item in data['transactions']) {
-              item.remove('firebase_uid');
-              item[TransactionFields.isSynced] = 1;
-              
-              if (item[TransactionFields.deletedAt] != null) {
-                 await txn.delete(DatabaseTables.transactions, where: '${TransactionFields.id} = ?', whereArgs: [item[TransactionFields.id]]);
+          if (data['transactions'] is List) {
+            for (var item in (data['transactions'] as List)) {
+              final id = item['id'] as String;
+              final deletedAt = _parseNullableTimestamp(item['deleted_at']);
+
+              if (deletedAt != null) {
+                await txn.delete(
+                  DatabaseTables.transactions,
+                  where: '${TransactionFields.id} = ?',
+                  whereArgs: [id],
+                );
               } else {
-                 await txn.insert(DatabaseTables.transactions, Map<String, dynamic>.from(item), conflictAlgorithm: ConflictAlgorithm.replace);
+                await txn.insert(
+                  DatabaseTables.transactions,
+                  {
+                    TransactionFields.id: id,
+                    TransactionFields.title: item['title'],
+                    TransactionFields.amount: (item['amount'] as num).toDouble(),
+                    TransactionFields.type: item['type'],
+                    TransactionFields.categoryId:
+                        item['category_id'] ?? item['categoryId'],
+                    TransactionFields.date: _parseTimestamp(item['date']),
+                    TransactionFields.paymentMethod:
+                        item['payment_method'] ?? item['paymentMethod'] ?? 'Cash',
+                    TransactionFields.note: item['note'],
+                    TransactionFields.createdAt:
+                        _parseTimestamp(item['created_at']),
+                    TransactionFields.updatedAt:
+                        _parseTimestamp(item['updated_at']),
+                    TransactionFields.isSynced: 1,
+                    TransactionFields.deletedAt: null,
+                  },
+                  conflictAlgorithm: ConflictAlgorithm.replace,
+                );
               }
             }
           }
 
           // Process pulled Budgets
-          if (data['budgets'] != null) {
-            for (var item in data['budgets']) {
-              item.remove('firebase_uid');
-              item[BudgetFields.isSynced] = 1;
-              
-              if (item[BudgetFields.deletedAt] != null) {
-                 await txn.delete(DatabaseTables.budgets, where: '${BudgetFields.id} = ?', whereArgs: [item[BudgetFields.id]]);
+          if (data['budgets'] is List) {
+            for (var item in (data['budgets'] as List)) {
+              final id = item['id'] as String;
+              final deletedAt = _parseNullableTimestamp(item['deleted_at']);
+
+              if (deletedAt != null) {
+                await txn.delete(
+                  DatabaseTables.budgets,
+                  where: '${BudgetFields.id} = ?',
+                  whereArgs: [id],
+                );
               } else {
-                 await txn.insert(DatabaseTables.budgets, Map<String, dynamic>.from(item), conflictAlgorithm: ConflictAlgorithm.replace);
+                final monthDate = DateTime.parse(item['month'] as String);
+
+                await txn.insert(
+                  DatabaseTables.budgets,
+                  {
+                    BudgetFields.id: id,
+                    BudgetFields.categoryId:
+                        item['category_id'] ?? item['categoryId'],
+                    BudgetFields.amount: (item['amount'] as num).toDouble(),
+                    BudgetFields.month: monthDate.month,
+                    BudgetFields.year: monthDate.year,
+                    BudgetFields.updatedAt:
+                        _parseTimestamp(item['updated_at']),
+                    BudgetFields.isSynced: 1,
+                    BudgetFields.deletedAt: null,
+                  },
+                  conflictAlgorithm: ConflictAlgorithm.replace,
+                );
               }
             }
           }
         });
 
         if (data['server_timestamp'] != null) {
-          await prefs.setString('last_sync_timestamp', data['server_timestamp']);
+          await prefs.setString(
+            'last_sync_timestamp',
+            data['server_timestamp'].toString(),
+          );
         }
+
+        if (kDebugMode) {
+          debugPrint('Sync pull succeeded.');
+        }
+        return true;
       } else {
-        print('Sync pull failed: ${response.statusCode} - ${response.body}');
+        if (kDebugMode) {
+          debugPrint('Sync pull failed: ${response.statusCode} - ${response.body}');
+        }
+        return false;
       }
     } catch (e) {
-      print('Sync pull error: $e');
+      if (kDebugMode) {
+        debugPrint('Sync pull error: $e');
+      }
+      return false;
     }
   }
 
   Future<void> syncAll() async {
-    // Standard offline-first sync pattern: 
-    // 1. Push local changes to server.
-    // 2. Pull server changes (since last pull) down to local.
-    await push();
-    await pull();
+    await syncUser();
+    final pushed = await push();
+    if (pushed) {
+      await pull();
+    }
   }
 }
