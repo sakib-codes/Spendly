@@ -39,6 +39,16 @@ def debug_env():
 
 @app.post("/users/", response_model=User)
 def create_user(user: User, session: Session = Depends(get_session)):
+    existing = session.get(User, user.firebase_uid)
+    if existing:
+        if user.email:
+            existing.email = user.email
+        if user.full_name:
+            existing.full_name = user.full_name
+        session.add(existing)
+        session.commit()
+        session.refresh(existing)
+        return existing
     session.add(user)
     session.commit()
     session.refresh(user)
