@@ -9,6 +9,8 @@ def utc_now() -> datetime:
 def parse_epoch_dt(v: Any) -> Any:
     if v is None:
         return None
+    if isinstance(v, datetime):
+        return v
     if isinstance(v, (int, float)):
         if v == 0:
             return utc_now()
@@ -16,6 +18,12 @@ def parse_epoch_dt(v: Any) -> Any:
         if v > 10000000000:
             v = v / 1000.0
         return datetime.fromtimestamp(v, tz=timezone.utc)
+    if isinstance(v, str):
+        # Parse ISO-8601 string into timezone-aware datetime
+        dt = datetime.fromisoformat(v.replace('Z', '+00:00'))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
     return v
 
 class User(SQLModel, table=True):
@@ -114,7 +122,7 @@ class Budget(SQLModel, table=True):
                     year = int(info.data['year'])
                 return datetime(year, int(v), 1, tzinfo=timezone.utc)
             return parse_epoch_dt(v)
-        return v
+        return parse_epoch_dt(v)
 
     @field_validator('created_at', 'updated_at', 'deleted_at', mode='before')
     @classmethod
