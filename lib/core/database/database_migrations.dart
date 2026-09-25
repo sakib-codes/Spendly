@@ -64,6 +64,27 @@ class DatabaseMigrations {
       )
     ''');
 
+    // Recurring Transactions Table
+    await db.execute('''
+      CREATE TABLE ${DatabaseTables.recurringTransactions} (
+        ${RecurringTransactionFields.id} TEXT PRIMARY KEY,
+        ${RecurringTransactionFields.title} TEXT NOT NULL,
+        ${RecurringTransactionFields.amount} REAL NOT NULL,
+        ${RecurringTransactionFields.type} TEXT NOT NULL,
+        ${RecurringTransactionFields.categoryId} TEXT NOT NULL,
+        ${RecurringTransactionFields.frequency} TEXT NOT NULL,
+        ${RecurringTransactionFields.nextDate} INTEGER NOT NULL,
+        ${RecurringTransactionFields.endDate} INTEGER,
+        ${RecurringTransactionFields.paymentMethod} TEXT,
+        ${RecurringTransactionFields.note} TEXT,
+        ${RecurringTransactionFields.createdAt} INTEGER NOT NULL,
+        ${RecurringTransactionFields.updatedAt} INTEGER NOT NULL,
+        ${RecurringTransactionFields.isSynced} INTEGER NOT NULL DEFAULT 0,
+        ${RecurringTransactionFields.deletedAt} INTEGER,
+        FOREIGN KEY (${RecurringTransactionFields.categoryId}) REFERENCES ${DatabaseTables.categories} (${CategoryFields.id}) ON DELETE CASCADE
+      )
+    ''');
+
     await _insertDefaultData(db);
   }
 
@@ -311,6 +332,28 @@ class DatabaseMigrations {
 
     if (oldVersion < 7) {
       await db.execute('ALTER TABLE ${DatabaseTables.categories} ADD COLUMN ${CategoryFields.sortOrder} INTEGER NOT NULL DEFAULT 0');
+    }
+
+    if (oldVersion < 8) {
+      await db.execute('''
+        CREATE TABLE ${DatabaseTables.recurringTransactions} (
+          ${RecurringTransactionFields.id} TEXT PRIMARY KEY,
+          ${RecurringTransactionFields.title} TEXT NOT NULL,
+          ${RecurringTransactionFields.amount} REAL NOT NULL,
+          ${RecurringTransactionFields.type} TEXT NOT NULL,
+          ${RecurringTransactionFields.categoryId} TEXT NOT NULL,
+          ${RecurringTransactionFields.frequency} TEXT NOT NULL,
+          ${RecurringTransactionFields.nextDate} INTEGER NOT NULL,
+          ${RecurringTransactionFields.endDate} INTEGER,
+          ${RecurringTransactionFields.paymentMethod} TEXT,
+          ${RecurringTransactionFields.note} TEXT,
+          ${RecurringTransactionFields.createdAt} INTEGER NOT NULL,
+          ${RecurringTransactionFields.updatedAt} INTEGER NOT NULL,
+          ${RecurringTransactionFields.isSynced} INTEGER NOT NULL DEFAULT 0,
+          ${RecurringTransactionFields.deletedAt} INTEGER,
+          FOREIGN KEY (${RecurringTransactionFields.categoryId}) REFERENCES ${DatabaseTables.categories} (${CategoryFields.id}) ON DELETE CASCADE
+        )
+      ''');
     }
   }
 }

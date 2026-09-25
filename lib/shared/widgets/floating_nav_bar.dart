@@ -45,12 +45,13 @@ class FloatingNavigationBar extends StatelessWidget {
                   double xCenter = 0;
                   if (currentIndex == 0) {
                     xCenter = eWidth / 2;
-                  } else if (currentIndex == 1)
+                  } else if (currentIndex == 1) {
                     xCenter = eWidth * 1.5;
-                  else if (currentIndex == 2)
+                  } else if (currentIndex == 2) {
                     xCenter = eWidth * 2.5 + 64;
-                  else if (currentIndex == 3)
+                  } else if (currentIndex == 3) {
                     xCenter = eWidth * 3.5 + 64;
+                  }
 
                   return Stack(
                     children: [

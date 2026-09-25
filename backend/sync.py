@@ -75,52 +75,61 @@ def push_sync(
 
     try:
         # Process Categories
-        for cat in payload.categories:
-            cat.firebase_uid = uid
-            existing = session.get(Category, cat.id)
-            if cat.deleted_at is not None:
-                if existing:
-                    session.delete(existing)
-            else:
-                if existing:
-                    update_data = cat.model_dump(exclude_unset=True)
-                    for key, value in update_data.items():
-                        setattr(existing, key, value)
-                    session.add(existing)
+        if payload.categories:
+            cat_ids = [c.id for c in payload.categories]
+            existing_cats = {c.id: c for c in session.exec(select(Category).where(Category.id.in_(cat_ids))).all()}
+            for cat in payload.categories:
+                cat.firebase_uid = uid
+                existing = existing_cats.get(cat.id)
+                if cat.deleted_at is not None:
+                    if existing:
+                        session.delete(existing)
                 else:
-                    session.add(cat)
+                    if existing:
+                        update_data = cat.model_dump(exclude_unset=True)
+                        for key, value in update_data.items():
+                            setattr(existing, key, value)
+                        session.add(existing)
+                    else:
+                        session.add(cat)
                 
         # Process Transactions
-        for txn in payload.transactions:
-            txn.firebase_uid = uid
-            existing = session.get(Transaction, txn.id)
-            if txn.deleted_at is not None:
-                if existing:
-                    session.delete(existing)
-            else:
-                if existing:
-                    update_data = txn.model_dump(exclude_unset=True)
-                    for key, value in update_data.items():
-                        setattr(existing, key, value)
-                    session.add(existing)
+        if payload.transactions:
+            txn_ids = [t.id for t in payload.transactions]
+            existing_txns = {t.id: t for t in session.exec(select(Transaction).where(Transaction.id.in_(txn_ids))).all()}
+            for txn in payload.transactions:
+                txn.firebase_uid = uid
+                existing = existing_txns.get(txn.id)
+                if txn.deleted_at is not None:
+                    if existing:
+                        session.delete(existing)
                 else:
-                    session.add(txn)
+                    if existing:
+                        update_data = txn.model_dump(exclude_unset=True)
+                        for key, value in update_data.items():
+                            setattr(existing, key, value)
+                        session.add(existing)
+                    else:
+                        session.add(txn)
                 
         # Process Budgets
-        for bud in payload.budgets:
-            bud.firebase_uid = uid
-            existing = session.get(Budget, bud.id)
-            if bud.deleted_at is not None:
-                if existing:
-                    session.delete(existing)
-            else:
-                if existing:
-                    update_data = bud.model_dump(exclude_unset=True)
-                    for key, value in update_data.items():
-                        setattr(existing, key, value)
-                    session.add(existing)
+        if payload.budgets:
+            bud_ids = [b.id for b in payload.budgets]
+            existing_buds = {b.id: b for b in session.exec(select(Budget).where(Budget.id.in_(bud_ids))).all()}
+            for bud in payload.budgets:
+                bud.firebase_uid = uid
+                existing = existing_buds.get(bud.id)
+                if bud.deleted_at is not None:
+                    if existing:
+                        session.delete(existing)
                 else:
-                    session.add(bud)
+                    if existing:
+                        update_data = bud.model_dump(exclude_unset=True)
+                        for key, value in update_data.items():
+                            setattr(existing, key, value)
+                        session.add(existing)
+                    else:
+                        session.add(bud)
                 
         session.commit()
         return {"status": "success"}

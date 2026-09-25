@@ -31,6 +31,45 @@ class CategoryIconHelper {
     'utilities': Icons.power_rounded,
     'savings': Icons.savings_rounded,
     'cash': Icons.payments_rounded,
+
+    // Transport
+    'bike': Icons.pedal_bike_rounded,
+    'bus': Icons.directions_bus_rounded,
+    'metro': Icons.train_rounded,
+    'courier': Icons.local_shipping_rounded,
+
+    // Utilities / Bills
+    'electricity': Icons.bolt_rounded,
+    'gas': Icons.local_fire_department_rounded,
+    'wifi': Icons.wifi_rounded,
+    'domain': Icons.language_rounded,
+    'hosting': Icons.dns_rounded,
+    'antivirus': Icons.security_rounded,
+
+    // Payment
+    'credit_debit_card': Icons.credit_card_rounded,
+    'bank': Icons.account_balance_rounded,
+    'banking': Icons.account_balance_rounded,
+
+    // Subscription services
+    'netflix': Icons.smart_display_rounded,
+    'spotify': Icons.music_note_rounded,
+    'youtube': Icons.play_circle_rounded,
+    'chatgpt': Icons.auto_awesome_rounded,
+    'ai': Icons.auto_awesome_rounded,
+    'discord_nitro': Icons.headset_mic_rounded,
+    'crunchyroll': Icons.animation_rounded,
+    'xbox': Icons.sports_esports_rounded,
+    'slack': Icons.chat_rounded,
+    'zoom': Icons.videocam_rounded,
+    'github': Icons.code_rounded,
+    'office_ms365': Icons.description_rounded,
+    'google': Icons.search_rounded,
+    'meta': Icons.public_rounded,
+
+    // Other
+    'passport': Icons.badge_rounded,
+    'trash': Icons.delete_rounded,
   };
 
   static const Map<String, Color> _colorMap = {
@@ -63,9 +102,49 @@ class CategoryIconHelper {
     'utilities': Colors.redAccent,
     'savings': Colors.lightGreenAccent,
     'cash': Colors.tealAccent,
+
+    // Transport
+    'bike': Colors.teal,
+    'bus': Colors.blueAccent,
+    'metro': Colors.indigoAccent,
+    'courier': Colors.brown,
+
+    // Utilities / Bills
+    'electricity': Colors.amber,
+    'gas': Colors.deepOrange,
+    'wifi': Colors.cyan,
+    'domain': Colors.indigo,
+    'hosting': Colors.blueGrey,
+    'antivirus': Colors.green,
+
+    // Payment
+    'credit_debit_card': Colors.deepPurple,
+    'bank': Colors.blue,
+    'banking': Colors.blue,
+
+    // Subscription services
+    'netflix': Color(0xFFE50914),
+    'spotify': Color(0xFF1DB954),
+    'youtube': Color(0xFFFF0000),
+    'chatgpt': Color(0xFF10A37F),
+    'ai': Color(0xFF7C4DFF),
+    'discord_nitro': Color(0xFF5865F2),
+    'crunchyroll': Color(0xFFF47521),
+    'xbox': Color(0xFF107C10),
+    'slack': Color(0xFF4A154B),
+    'zoom': Color(0xFF2D8CFF),
+    'github': Color(0xFF333333),
+    'office_ms365': Color(0xFFD83B01),
+    'google': Color(0xFF4285F4),
+    'meta': Color(0xFF0668E1),
+
+    // Other
+    'passport': Colors.blueGrey,
+    'trash': Colors.grey,
   };
 
   static const Map<String, String> _assetMap = {
+    // Original categories
     'food': 'assets/icons/category_food.png',
     'transport': 'assets/icons/category_transport.png',
     'shopping': 'assets/icons/category_shopping.png',
@@ -92,6 +171,45 @@ class CategoryIconHelper {
     'bonus': 'assets/icons/category_bonus.png',
     'refunds': 'assets/icons/category_refunds.png',
     'other': 'assets/icons/category_others.png',
+
+    // Transport
+    'bike': 'assets/icons/bike_icon.png',
+    'bus': 'assets/icons/bus_icon.png',
+    'metro': 'assets/icons/metro_icon.png',
+    'courier': 'assets/icons/courier_icon.png',
+
+    // Utilities / Bills
+    'electricity': 'assets/icons/electricity_icon.png',
+    'gas': 'assets/icons/gas_icon.png',
+    'wifi': 'assets/icons/wifi_icon.png',
+    'domain': 'assets/icons/domain_icon.png',
+    'hosting': 'assets/icons/hosting_icon.png',
+    'antivirus': 'assets/icons/antivirus_icon.png',
+
+    // Payment
+    'credit_debit_card': 'assets/icons/credit_debit_card.png',
+    'bank': 'assets/icons/icon_bank.png',
+    'banking': 'assets/icons/icon_banking.png',
+
+    // Subscription services
+    'netflix': 'assets/icons/netflix_icon.png',
+    'spotify': 'assets/icons/spotify_icon.png',
+    'youtube': 'assets/icons/youtube_icon.png',
+    'chatgpt': 'assets/icons/chatgpt_icon.png',
+    'ai': 'assets/icons/ai_icon.png',
+    'discord_nitro': 'assets/icons/discord_nitro_icon.png',
+    'crunchyroll': 'assets/icons/crunchyrol_icon.png',
+    'xbox': 'assets/icons/xbox_icon.png',
+    'slack': 'assets/icons/slack_icon.png',
+    'zoom': 'assets/icons/zoom_icon.png',
+    'github': 'assets/icons/github_icon.png',
+    'office_ms365': 'assets/icons/office_ms365_icon.png',
+    'google': 'assets/icons/google.png',
+    'meta': 'assets/icons/meta_icon.png',
+
+    // Other
+    'passport': 'assets/icons/passport_icon.png',
+    'trash': 'assets/icons/trash_icon.png',
   };
 
   /// Returns a widget that is either an Image (if a custom icon exists) or a Material Icon.
@@ -131,5 +249,10 @@ class CategoryIconHelper {
   /// Returns all available icon keys and their corresponding IconData.
   static Map<String, IconData> getAllIcons() {
     return _iconMap;
+  }
+
+  /// Returns all available asset icon keys.
+  static Map<String, String> getAllAssets() {
+    return _assetMap;
   }
 }

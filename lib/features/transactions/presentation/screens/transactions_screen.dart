@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:spendly/app/theme/app_colors.dart';
 import 'package:spendly/shared/widgets/glass_card.dart';
+import 'package:spendly/shared/widgets/glass_month_picker.dart';
 
 import 'package:spendly/shared/providers/transaction_provider.dart';
 import 'package:spendly/shared/providers/category_provider.dart';
@@ -25,6 +27,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String _sortBy = 'date_desc';
+  bool _isSearchVisible = false;
 
   @override
   void initState() {
@@ -50,120 +53,153 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 130),
-          children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Transactions',
-                style: Theme.of(context).textTheme.headlineMedium
-                    ?.copyWith(fontWeight: FontWeight.bold),
+        child: NotificationListener<UserScrollNotification>(
+          onNotification: (notification) {
+            if (notification.direction == ScrollDirection.reverse) {
+              if (_isSearchVisible) {
+                setState(() => _isSearchVisible = false);
+              }
+            } else if (notification.direction == ScrollDirection.forward) {
+              if (!_isSearchVisible) {
+                setState(() => _isSearchVisible = true);
+              }
+            }
+            return false;
+          },
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+            slivers: [
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                sliver: SliverToBoxAdapter(
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Transactions',
+                    style: Theme.of(context).textTheme.headlineMedium
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                ),
               ),
             ),
-            const SizedBox(height: 24),
-            _buildSearchBar(context, ref),
-            const SizedBox(height: 32),
-            transactionsState.when(
-              data: (allTransactions) {
-                final selectedMonth = ref.watch(selectedMonthProvider);
-                var transactions = allTransactions
-                    .where(
-                      (t) =>
-                          t.date.year == selectedMonth.year &&
-                          t.date.month == selectedMonth.month,
-                    )
-                    .toList();
-
-                if (filterType != null) {
-                  transactions = transactions
-                      .where((t) => t.type == filterType)
-                      .toList();
-                }
-
-                if (_searchQuery.isNotEmpty) {
-                  transactions = transactions
-                      .where(
-                        (t) =>
-                            t.title.toLowerCase().contains(_searchQuery) ||
-                            (t.note?.toLowerCase().contains(_searchQuery) ??
-                                false),
+            SliverToBoxAdapter(
+              child: AnimatedSize(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOutCubic,
+                child: _isSearchVisible
+                    ? Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                        child: _buildSearchBar(context, ref),
                       )
-                      .toList();
-                }
+                    : const SizedBox(width: double.infinity, height: 0),
+              ),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 130),
+              sliver: SliverToBoxAdapter(
+                child: transactionsState.when(
+                  data: (allTransactions) {
+                    final selectedMonth = ref.watch(selectedMonthProvider);
+                    var transactions = allTransactions
+                        .where(
+                          (t) =>
+                              t.date.year == selectedMonth.year &&
+                              t.date.month == selectedMonth.month,
+                        )
+                        .toList();
 
-                if (transactions.isEmpty) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(32.0),
-                      child: Text('No transactions found.'),
-                    ),
-                  );
-                }
+                    if (filterType != null) {
+                      transactions = transactions
+                          .where((t) => t.type == filterType)
+                          .toList();
+                    }
 
-                if (_sortBy == 'date_desc') {
-                  transactions.sort((a, b) => b.date.compareTo(a.date));
-                } else if (_sortBy == 'date_asc') {
-                  transactions.sort((a, b) => a.date.compareTo(b.date));
-                } else if (_sortBy == 'amount_desc') {
-                  transactions.sort((a, b) => b.amount.compareTo(a.amount));
-                } else if (_sortBy == 'amount_asc') {
-                  transactions.sort((a, b) => a.amount.compareTo(b.amount));
-                }
+                    if (_searchQuery.isNotEmpty) {
+                      transactions = transactions
+                          .where(
+                            (t) =>
+                                t.title.toLowerCase().contains(_searchQuery) ||
+                                (t.note?.toLowerCase().contains(_searchQuery) ??
+                                    false),
+                          )
+                          .toList();
+                    }
 
-                // Group transactions by date
-                final Map<String, List<Transaction>> grouped = {};
-                for (var t in transactions) {
-                  final dateStr = DateFormat('MMM d, yyyy').format(t.date);
-                  grouped.putIfAbsent(dateStr, () => []).add(t);
-                }
+                    if (transactions.isEmpty) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(32.0),
+                          child: Text('No transactions found.'),
+                        ),
+                      );
+                    }
 
-                return Column(
-                  children: grouped.entries.map((entry) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 24.0),
-                      child: _buildDateGroup(
-                        context,
-                        entry.key.toUpperCase(),
-                        entry.value.map((t) {
-                          final amountPrefix = t.type == TransactionType.expense
-                              ? '-'
-                              : '+';
+                    if (_sortBy == 'date_desc') {
+                      transactions.sort((a, b) => b.date.compareTo(a.date));
+                    } else if (_sortBy == 'date_asc') {
+                      transactions.sort((a, b) => a.date.compareTo(b.date));
+                    } else if (_sortBy == 'amount_desc') {
+                      transactions.sort((a, b) => b.amount.compareTo(a.amount));
+                    } else if (_sortBy == 'amount_asc') {
+                      transactions.sort((a, b) => a.amount.compareTo(b.amount));
+                    }
 
-                          String categoryName = 'Unknown';
-                          String categoryIconKey = 'other';
-                          categoriesState.maybeWhen(
-                            data: (categories) {
-                              final cat = categories
-                                  .where((c) => c.id == t.categoryId)
-                                  .firstOrNull;
-                              if (cat != null) {
-                                categoryName = cat.name;
-                                categoryIconKey = cat.icon;
-                              }
-                            },
-                            orElse: () {},
-                          );
+                    // Group transactions by date
+                    final Map<String, List<Transaction>> grouped = {};
+                    for (var t in transactions) {
+                      final dateStr = DateFormat('MMM d, yyyy').format(t.date);
+                      grouped.putIfAbsent(dateStr, () => []).add(t);
+                    }
 
-                          return _buildTransactionTile(
+                    return Column(
+                      children: grouped.entries.map((entry) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 24.0),
+                          child: _buildDateGroup(
                             context,
-                            ref,
-                            t,
-                            categoryName,
-                            DateFormat('h:mm a').format(t.date),
-                            '$amountPrefix${formatBDT(t.amount)}',
-                            categoryIconKey,
-                          );
-                        }).toList(),
-                      ),
+                            entry.key.toUpperCase(),
+                            entry.value.map((t) {
+                              final amountPrefix = t.type == TransactionType.expense
+                                  ? '-'
+                                  : '+';
+
+                              String categoryName = 'Unknown';
+                              String categoryIconKey = 'other';
+                              categoriesState.maybeWhen(
+                                data: (categories) {
+                                  final cat = categories
+                                      .where((c) => c.id == t.categoryId)
+                                      .firstOrNull;
+                                  if (cat != null) {
+                                    categoryName = cat.name;
+                                    categoryIconKey = cat.icon;
+                                  }
+                                },
+                                orElse: () {},
+                              );
+
+                              return _buildTransactionTile(
+                                context,
+                                ref,
+                                t,
+                                categoryName,
+                                DateFormat('h:mm a').format(t.date),
+                                '$amountPrefix${formatBDT(t.amount)}',
+                                categoryIconKey,
+                              );
+                            }).toList(),
+                          ),
+                        );
+                      }).toList(),
                     );
-                  }).toList(),
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, st) => Center(child: Text('Error: $e')),
+                  },
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (e, st) => Center(child: Text('Error: $e')),
+                ),
+              ),
             ),
           ],
+        ),
         ),
       ),
     );
@@ -172,7 +208,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   Widget _buildMonthSwitcher(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final selectedMonth = ref.watch(selectedMonthProvider);
-    final currentMonthYear = DateFormat('MMMM').format(selectedMonth);
+    final currentMonthYear = DateFormat('MMMM yyyy').format(selectedMonth);
+    
+    final now = DateTime.now();
+    final isCurrentMonth = selectedMonth.year == now.year && selectedMonth.month == now.month;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -190,31 +229,47 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                   DateTime(selectedMonth.year, selectedMonth.month - 1),
                 ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              currentMonthYear.toUpperCase(),
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: theme.colorScheme.primary,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
+          GestureDetector(
+            onTap: () async {
+              final picked = await GlassMonthPicker.show(
+                context: context,
+                initialDate: selectedMonth,
+                lastDate: DateTime.now(),
+              );
+              if (picked != null) {
+                ref.read(selectedMonthProvider.notifier).setMonth(picked);
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                currentMonthYear.toUpperCase(),
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                ),
               ),
             ),
           ),
           IconButton(
             icon: Icon(
               Icons.chevron_right_rounded,
-              color: theme.colorScheme.onSurfaceVariant,
+              color: isCurrentMonth 
+                  ? theme.colorScheme.onSurface.withValues(alpha: 0.2)
+                  : theme.colorScheme.onSurfaceVariant,
             ),
-            onPressed: () => ref
-                .read(selectedMonthProvider.notifier)
-                .setMonth(
-                  DateTime(selectedMonth.year, selectedMonth.month + 1),
-                ),
+            onPressed: isCurrentMonth 
+                ? null 
+                : () => ref
+                    .read(selectedMonthProvider.notifier)
+                    .setMonth(
+                      DateTime(selectedMonth.year, selectedMonth.month + 1),
+                    ),
           ),
         ],
       ),
@@ -261,67 +316,69 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
               isScrollControlled: true,
               useRootNavigator: true,
               builder: (context) {
-                return StatefulBuilder(
-                  builder: (context, setModalState) {
-                    return GlassCard(
-                      padding: EdgeInsets.zero,
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(32),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(24, 24, 24, 48),
-                        child: SingleChildScrollView(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Center(
-                                child: Container(
-                                  width: 40,
-                                  height: 4,
-                                  decoration: BoxDecoration(
-                                    color: theme.colorScheme.onSurfaceVariant
-                                        .withValues(alpha: 0.4),
-                                    borderRadius: BorderRadius.circular(2),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 24),
-                              Text(
-                                'Filters',
-                                style: theme.textTheme.titleLarge?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 24),
-
-                              Text(
-                                'Month',
-                                style: theme.textTheme.labelMedium?.copyWith(
-                                  letterSpacing: 1.2,
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              GlassCard(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 4,
-                                ),
-                                child: _buildMonthSwitcher(context, ref),
-                              ),
-                              const SizedBox(height: 24),
-
-                              Text(
-                                'Type',
-                                style: theme.textTheme.labelMedium?.copyWith(
-                                  letterSpacing: 1.2,
-                                  color: theme.colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
+                return Consumer(
+                  builder: (context, modalRef, child) {
+                    return StatefulBuilder(
+                      builder: (context, setModalState) {
+                        return GlassCard(
+                          padding: EdgeInsets.zero,
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(32),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(24, 24, 24, 48),
+                            child: SingleChildScrollView(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
+                                  Center(
+                                    child: Container(
+                                      width: 40,
+                                      height: 4,
+                                      decoration: BoxDecoration(
+                                        color: theme.colorScheme.onSurfaceVariant
+                                            .withValues(alpha: 0.4),
+                                        borderRadius: BorderRadius.circular(2),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 24),
+                                  Text(
+                                    'Filters',
+                                    style: theme.textTheme.titleLarge?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 24),
+
+                                  Text(
+                                    'Month',
+                                    style: theme.textTheme.labelMedium?.copyWith(
+                                      letterSpacing: 1.2,
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  GlassCard(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 4,
+                                    ),
+                                    child: _buildMonthSwitcher(context, modalRef),
+                                  ),
+                                  const SizedBox(height: 24),
+
+                                  Text(
+                                    'Type',
+                                    style: theme.textTheme.labelMedium?.copyWith(
+                                      letterSpacing: 1.2,
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
                                   Expanded(
                                     child: _buildFilterChip(
                                       context,
@@ -466,14 +523,16 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                               ),
                             ],
                           ),
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                );
-              },
-            );
-          },
+                      );
+                    },
+                  );
+                },
+              );
+            },
+          );
+        },
           child: Stack(
             children: [
               GlassCard(
@@ -483,13 +542,13 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 child: Center(
                   child: Icon(
                     Icons.tune_rounded,
-                    color: ref.watch(transactionFilterProvider) != null
+                    color: (ref.watch(transactionFilterProvider) != null || _sortBy != 'date_desc')
                         ? theme.colorScheme.primary
                         : theme.colorScheme.onSurface,
                   ),
                 ),
               ),
-              if (ref.watch(transactionFilterProvider) != null)
+              if (ref.watch(transactionFilterProvider) != null || _sortBy != 'date_desc')
                 Positioned(
                   top: 14,
                   right: 14,

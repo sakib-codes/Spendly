@@ -17,6 +17,8 @@ import 'package:spendly/domain/entities/category.dart';
 import 'package:spendly/shared/utils/category_icon_helper.dart';
 import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
+import 'package:spendly/domain/entities/recurring_transaction.dart';
+import 'package:spendly/shared/providers/recurring_transaction_provider.dart';
 
 class AddTransactionScreen extends ConsumerStatefulWidget {
   final Transaction? transactionToEdit;
@@ -38,6 +40,8 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   final FocusNode _amountFocusNode = FocusNode();
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
+  bool _isRecurring = false;
+  RecurrenceFrequency _frequency = RecurrenceFrequency.monthly;
 
   final List<String> _paymentMethods = [
     'Cash',
@@ -190,6 +194,10 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                           const SizedBox(height: 16),
                           _buildDatePicker(context),
                           const SizedBox(height: 16),
+                          if (widget.transactionToEdit == null) ...[
+                            _buildRecurringSelector(context),
+                            const SizedBox(height: 16),
+                          ],
                           _buildPaymentMethodSelector(context),
                           const SizedBox(height: 16),
                           _buildTextInputField(
@@ -262,6 +270,28 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                                 ref
                                     .read(transactionProvider.notifier)
                                     .addTransaction(transaction);
+
+                                // If user toggled recurring, also create a recurring entry
+                                if (_isRecurring) {
+                                  final recurring = RecurringTransaction(
+                                    id: const Uuid().v4(),
+                                    title: title,
+                                    amount: amount,
+                                    type: isExpense ? 'expense' : 'income',
+                                    categoryId: _selectedCategory!.id,
+                                    frequency: _frequency,
+                                    nextDate: _calculateNextDate(_selectedDate, _frequency),
+                                    paymentMethod: _selectedPaymentMethod,
+                                    note: _noteController.text.trim().isEmpty
+                                        ? null
+                                        : _noteController.text.trim(),
+                                    createdAt: DateTime.now(),
+                                    updatedAt: DateTime.now(),
+                                  );
+                                  ref
+                                      .read(recurringTransactionProvider.notifier)
+                                      .addRecurringTransaction(recurring);
+                                }
                               }
                               context.pop();
                             },
@@ -996,5 +1026,130 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         }).toList(),
       ),
     );
+  }
+
+  Widget _buildRecurringSelector(BuildContext context) {
+    final theme = Theme.of(context);
+    final iconColor = Colors.purple;
+
+    return GlassCard(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: iconColor.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.repeat_rounded,
+                  color: iconColor,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  'Repeat Transaction',
+                  style: theme.textTheme.titleMedium,
+                ),
+              ),
+              Switch(
+                value: _isRecurring,
+                activeThumbColor: iconColor,
+                onChanged: (value) {
+                  setState(() {
+                    _isRecurring = value;
+                  });
+                },
+              ),
+            ],
+          ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOutCubic,
+            child: _isRecurring
+                ? Column(
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: Divider(),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: RecurrenceFrequency.values.map((freq) {
+                          final isSelected = _frequency == freq;
+                          return GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _frequency = freq;
+                              });
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? iconColor.withValues(alpha: 0.2)
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? iconColor
+                                      : theme.colorScheme.onSurface
+                                          .withValues(alpha: 0.1),
+                                ),
+                              ),
+                              child: Text(
+                                freq.name[0].toUpperCase() +
+                                    freq.name.substring(1),
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                  color: isSelected
+                                      ? iconColor
+                                      : theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  DateTime _calculateNextDate(
+      DateTime current, RecurrenceFrequency frequency) {
+    switch (frequency) {
+      case RecurrenceFrequency.daily:
+        return current.add(const Duration(days: 1));
+      case RecurrenceFrequency.weekly:
+        return current.add(const Duration(days: 7));
+      case RecurrenceFrequency.monthly:
+        int year = current.year;
+        int month = current.month + 1;
+        if (month > 12) {
+          month = 1;
+          year++;
+        }
+        int day = current.day;
+        final daysInNextMonth = DateTime(year, month + 1, 0).day;
+        if (day > daysInNextMonth) day = daysInNextMonth;
+        return DateTime(year, month, day, current.hour, current.minute);
+      case RecurrenceFrequency.yearly:
+        return DateTime(current.year + 1, current.month, current.day,
+            current.hour, current.minute);
+    }
   }
 }

@@ -27,8 +27,9 @@ flutter run  # or hot reload with 'r' in the running terminal
 | Add/Edit | `lib/features/transactions/presentation/screens/add_transaction_screen.dart` |
 | Details | `lib/features/transactions/presentation/screens/transaction_details_screen.dart` |
 | Analytics | `lib/features/analytics/presentation/screens/analytics_screen.dart` |
-| Settings | `lib/features/settings/presentation/screens/settings_screen.dart` |
-| Categories | `lib/features/settings/presentation/screens/manage_categories_screen.dart` |
+| Profile | `lib/features/settings/presentation/screens/profile_screen.dart` |
+| Manage Categories | `lib/features/settings/presentation/screens/manage_categories_screen.dart` |
+| Subscriptions | `lib/features/settings/presentation/screens/subscriptions_screen.dart` |
 
 ### Providers
 | Provider | File |
@@ -36,9 +37,12 @@ flutter run  # or hot reload with 'r' in the running terminal
 | Transactions | `lib/shared/providers/transaction_provider.dart` |
 | Categories | `lib/shared/providers/category_provider.dart` |
 | Budgets | `lib/shared/providers/budget_provider.dart` |
+| Recurring | `lib/shared/providers/recurring_transaction_provider.dart` |
 | Dashboard stats | `lib/shared/providers/dashboard_provider.dart` |
 | Theme | `lib/shared/providers/theme_provider.dart` |
 | Preferences | `lib/shared/providers/preferences_provider.dart` |
+| Auth | `lib/features/auth/providers/auth_provider.dart` |
+| Sync | `lib/features/sync/providers/sync_provider.dart` |
 
 ### Core
 | File | Purpose |
@@ -49,14 +53,17 @@ flutter run  # or hot reload with 'r' in the running terminal
 | `lib/app/theme/app_theme.dart` | ThemeData (light/dark) |
 | `lib/shared/widgets/app_scaffold.dart` | Floating navbar scaffold |
 | `lib/shared/widgets/glass_card.dart` | Reusable glass card widget |
+| `lib/shared/widgets/glass_date_picker.dart` | Custom Glassmorphism Date/Time Picker |
 | `lib/shared/utils/currency_formatter.dart` | `formatBDT()` and `formatBDTRich()` |
-| `lib/shared/utils/category_icon_helper.dart` | Icon mapping for categories |
+| `lib/shared/utils/category_icon_helper.dart` | Icon mapping (`getAllAssets()`) |
 
 ## Entities
 - **Transaction**: id, title, amount, type (income/expense), categoryId, date, paymentMethod, note
 - **Category**: id, name, icon, type (income/expense/both), createdAt
 - **Budget**: id, categoryId, amount, month, year
+- **RecurringTransaction**: id, title, amount, type, categoryId, frequency, startDate, endDate, nextDate, paymentMethod
 
 ## TODO — Next Work Items
-- All current work items and identified bugs have been successfully resolved.
+- Consider exploring: Push Notifications, Multi-currency support, or PDF exports.
+- All currently requested work items and identified bugs have been successfully resolved.
 

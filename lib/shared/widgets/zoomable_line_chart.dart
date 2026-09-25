@@ -32,6 +32,7 @@ class _ZoomableLineChartState extends State<ZoomableLineChart> {
   double _baseZoomLevel = 1.0;
 
   double _panOffset = 0.0;
+  bool _isInitialized = false;
 
   @override
   Widget build(BuildContext context) {
@@ -50,11 +51,20 @@ class _ZoomableLineChartState extends State<ZoomableLineChart> {
     if (baseWidth < screenWidth) baseWidth = screenWidth;
 
     double currentWidth = baseWidth * _zoomLevel;
+    
+    double minPan = screenWidth - currentWidth;
+    if (minPan > 0) minPan = 0;
+
+    if (!_isInitialized) {
+      _panOffset = minPan;
+      _isInitialized = true;
+    }
 
     return SizedBox(
       height: 180,
       width: double.infinity,
       child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onScaleStart: (details) {
           _baseZoomLevel = _zoomLevel;
         },
@@ -109,7 +119,7 @@ class _ZoomableLineChartState extends State<ZoomableLineChart> {
                       maxY: widget.maxY,
                       lineTouchData: LineTouchData(
                         enabled: true,
-                        handleBuiltInTouches: true,
+                        handleBuiltInTouches: false,
                         touchTooltipData: LineTouchTooltipData(
                           getTooltipItems: (touchedSpots) {
                             return touchedSpots.map((spot) {

@@ -226,6 +226,7 @@ final spendingTrendProvider = Provider<SpendingTrend>((ref) {
 class MonthComparison {
   final double currentMonthExpense;
   final double lastMonthExpense;
+  final String currentMonthName;
   final String lastMonthName;
 
   double get difference => lastMonthExpense > 0
@@ -236,6 +237,7 @@ class MonthComparison {
   MonthComparison({
     required this.currentMonthExpense,
     required this.lastMonthExpense,
+    required this.currentMonthName,
     required this.lastMonthName,
   });
 }
@@ -266,12 +268,14 @@ final monthComparisonProvider = Provider<MonthComparison>((ref) {
       return MonthComparison(
         currentMonthExpense: currentExpense,
         lastMonthExpense: lastExpense,
+        currentMonthName: _monthName(selectedMonth.month),
         lastMonthName: _monthName(lastMonth.month),
       );
     },
     orElse: () => MonthComparison(
       currentMonthExpense: 0,
       lastMonthExpense: 0,
+      currentMonthName: '',
       lastMonthName: '',
     ),
   );
@@ -295,3 +299,129 @@ String _monthName(int month) {
   ];
   return names[month.clamp(1, 12)];
 }
+
+class MonthSummary {
+  final String monthName;
+  final double income;
+  final double expense;
+
+  MonthSummary(this.monthName, this.income, this.expense);
+}
+
+final sixMonthTrendProvider = Provider<List<MonthSummary>>((ref) {
+  final transactionsState = ref.watch(transactionProvider);
+
+  return transactionsState.maybeWhen(
+    data: (transactions) {
+      final now = DateTime.now();
+      List<MonthSummary> summaries = [];
+
+      for (int i = 5; i >= 0; i--) {
+        final targetMonth = DateTime(now.year, now.month - i);
+        double income = 0;
+        double expense = 0;
+
+        for (var t in transactions) {
+          if (t.date.year == targetMonth.year &&
+              t.date.month == targetMonth.month) {
+            if (t.type == TransactionType.income) {
+              income += t.amount;
+            } else {
+              expense += t.amount;
+            }
+          }
+        }
+
+        summaries.add(MonthSummary(
+            _monthName(targetMonth.month).substring(0, 3), income, expense));
+      }
+
+      return summaries;
+    },
+    orElse: () => [],
+  );
+});
+
+final topExpensesProvider = Provider<List<Transaction>>((ref) {
+  final transactionsState = ref.watch(transactionProvider);
+
+  return transactionsState.maybeWhen(
+    data: (transactions) {
+      final selectedMonth = ref.watch(selectedMonthProvider);
+      final expenses = transactions
+          .where((t) =>
+              t.type == TransactionType.expense &&
+              t.date.month == selectedMonth.month &&
+              t.date.year == selectedMonth.year)
+          .toList();
+
+      expenses.sort((a, b) => b.amount.compareTo(a.amount));
+      return expenses.take(5).toList();
+    },
+    orElse: () => [],
+  );
+});
+
+class PaymentMethodSpending {
+  final String methodName;
+  final double amount;
+  final double percentage;
+  final Color color;
+
+  PaymentMethodSpending(this.methodName, this.amount, this.percentage, this.color);
+}
+
+final paymentMethodBreakdownProvider =
+    Provider<List<PaymentMethodSpending>>((ref) {
+  final transactionsState = ref.watch(transactionProvider);
+
+  return transactionsState.maybeWhen(
+    data: (transactions) {
+      final selectedMonth = ref.watch(selectedMonthProvider);
+      final expenseTransactions = transactions
+          .where((t) =>
+              t.type == TransactionType.expense &&
+              t.date.month == selectedMonth.month &&
+              t.date.year == selectedMonth.year)
+          .toList();
+
+      if (expenseTransactions.isEmpty) return [];
+
+      double totalExpense =
+          expenseTransactions.fold(0, (sum, t) => sum + t.amount);
+
+      Map<String, double> methodSums = {};
+      for (var t in expenseTransactions) {
+        final method = t.paymentMethod == null || t.paymentMethod!.isEmpty
+            ? 'Other'
+            : t.paymentMethod!;
+        methodSums[method] = (methodSums[method] ?? 0) + t.amount;
+      }
+
+      final List<Color> colors = [
+        const Color(0xFF5C6BC0), // Indigo
+        const Color(0xFF26A69A), // Teal
+        const Color(0xFFFFCA28), // Amber
+        const Color(0xFFEC407A), // Pink
+        const Color(0xFF8D6E63), // Brown
+      ];
+
+      List<PaymentMethodSpending> breakdown = [];
+      int colorIndex = 0;
+
+      methodSums.forEach((method, amount) {
+        breakdown.add(PaymentMethodSpending(
+          method,
+          amount,
+          (amount / totalExpense) * 100,
+          colors[colorIndex % colors.length],
+        ));
+        colorIndex++;
+      });
+
+      breakdown.sort((a, b) => b.amount.compareTo(a.amount));
+      return breakdown;
+    },
+    orElse: () => [],
+  );
+});

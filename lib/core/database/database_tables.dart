@@ -3,6 +3,7 @@ class DatabaseTables {
   static const String categories = 'categories';
   static const String settings = 'settings';
   static const String budgets = 'budgets';
+  static const String recurringTransactions = 'recurring_transactions';
 }
 
 class TransactionFields {
@@ -45,6 +46,23 @@ class BudgetFields {
   static const String amount = 'amount';
   static const String month = 'month';
   static const String year = 'year';
+  static const String updatedAt = 'updatedAt';
+  static const String isSynced = 'isSynced';
+  static const String deletedAt = 'deletedAt';
+}
+
+class RecurringTransactionFields {
+  static const String id = 'id';
+  static const String title = 'title';
+  static const String amount = 'amount';
+  static const String type = 'type'; 
+  static const String categoryId = 'categoryId';
+  static const String frequency = 'frequency'; // 'daily', 'weekly', 'monthly', 'yearly'
+  static const String nextDate = 'nextDate';
+  static const String endDate = 'endDate'; // Optional end date
+  static const String paymentMethod = 'paymentMethod';
+  static const String note = 'note';
+  static const String createdAt = 'createdAt';
   static const String updatedAt = 'updatedAt';
   static const String isSynced = 'isSynced';
   static const String deletedAt = 'deletedAt';

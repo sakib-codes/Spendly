@@ -11,15 +11,19 @@ import 'package:spendly/shared/providers/theme_provider.dart';
 import 'package:spendly/shared/providers/transaction_provider.dart';
 import 'package:spendly/shared/providers/preferences_provider.dart';
 import 'package:spendly/shared/utils/export_service.dart';
+import 'package:spendly/shared/providers/category_provider.dart';
 import 'package:spendly/features/auth/providers/auth_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:spendly/shared/widgets/glass_dialog.dart';
 import 'package:spendly/shared/widgets/primary_button.dart';
 import 'package:spendly/shared/widgets/custom_license_page.dart';
 import 'package:spendly/shared/widgets/glass_toast.dart';
+import 'package:spendly/shared/widgets/expressive_loader.dart';
 import 'package:spendly/shared/services/profile_photo_cache.dart';
 import 'package:intl/intl.dart';
 import 'package:spendly/features/sync/providers/sync_provider.dart';
+
+
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -55,6 +59,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 context,
                 'Manage Categories',
                 '',
+                icon: Icons.category_rounded,
                 onTap: () {
                   context.pushNamed(RouteNames.categories);
                 },
@@ -62,8 +67,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               _buildDivider(context),
               _buildSettingItem(
                 context,
+                'Subscriptions',
+                '',
+                icon: Icons.repeat_rounded,
+                onTap: () {
+                  context.pushNamed(RouteNames.subscriptions);
+                },
+              ),
+              _buildDivider(context),
+              _buildSettingItem(
+                context,
                 'Currency',
                 preferences.currency,
+                icon: Icons.payments_rounded,
                 onTap: () {
                   _showCurrencyPicker(context, ref, preferences.currency);
                 },
@@ -73,6 +89,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 context,
                 'Theme',
                 themeText,
+                icon: Icons.palette_rounded,
                 onTap: () {
                   _showThemePicker(context, ref, themeMode);
                 },
@@ -82,12 +99,30 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 context,
                 'First day of month',
                 preferences.firstDayOfMonth,
+                icon: Icons.calendar_month_rounded,
                 onTap: () {
                   _showFirstDayPicker(
                     context,
                     ref,
                     preferences.firstDayOfMonth,
                   );
+                },
+              ),
+              _buildDivider(context),
+              _buildSettingItem(
+                context,
+                'Biometric Lock',
+                '',
+                icon: Icons.fingerprint_rounded,
+                customTrailing: Switch(
+                  value: preferences.useBiometrics,
+                  onChanged: (value) {
+                    ref.read(preferencesProvider.notifier).setUseBiometrics(value);
+                  },
+                  activeThumbColor: Theme.of(context).colorScheme.primary,
+                ),
+                onTap: () {
+                  ref.read(preferencesProvider.notifier).setUseBiometrics(!preferences.useBiometrics);
                 },
               ),
             ]),
@@ -97,6 +132,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 context,
                 'Edit Profile Name',
                 '',
+                icon: Icons.person_rounded,
                 onTap: () {
                   _showChangeNameDialog(context, ref);
                 },
@@ -108,6 +144,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ? 'Change Password'
                     : 'Set Password',
                 '',
+                icon: Icons.password_rounded,
                 onTap: () {
                   if (ref.read(authProvider.notifier).hasPasswordProvider) {
                     _showChangePasswordDialog(context, ref);
@@ -121,6 +158,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 context,
                 'Log Out',
                 '',
+                icon: Icons.logout_rounded,
                 isDestructive: true,
                 onTap: () {
                   showGeneralDialog(
@@ -136,6 +174,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 context,
                 'Delete Account',
                 '',
+                icon: Icons.person_off_rounded,
                 isDestructive: true,
                 onTap: () {
                   showGeneralDialog(
@@ -155,17 +194,108 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 context,
                 'Export Data',
                 'CSV / PDF',
-                onTap: () async {
+                icon: Icons.import_export_rounded,
+                onTap: () {
                   final transactions = ref.read(transactionProvider).value;
-                  if (transactions != null && transactions.isNotEmpty) {
-                    await ExportService.exportTransactionsToCSV(transactions);
-                  } else {
+                  if (transactions == null || transactions.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('No transactions to export'),
                       ),
                     );
+                    return;
                   }
+                  final currencyPref = ref.read(preferencesProvider).currency;
+                  final symbol = RegExp(r'\((.*?)\)').firstMatch(currencyPref)?.group(1) ?? currencyPref;
+
+                  Future<void> exportWithLoading(String format, Future<void> Function() action) async {
+                    Navigator.of(context, rootNavigator: true).pop(); // Close format dialog
+
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (ctx) => Center(
+                        child: Material(
+                          color: Colors.transparent,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 40),
+                            child: GlassCard(
+                              padding: const EdgeInsets.all(32),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const ExpressiveLoader(),
+                                  const SizedBox(height: 24),
+                                  Text(
+                                    'Generating $format...',
+                                    style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+
+                    try {
+                      await action();
+                    } finally {
+                      if (context.mounted) {
+                        Navigator.of(context, rootNavigator: true).pop(); // Close loading dialog
+                      }
+                    }
+                  }
+
+                  GlassDialog.show(
+                    context: context,
+                    title: 'Export Data',
+                    icon: Icon(
+                      Icons.ios_share_rounded,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 48,
+                    ),
+                    content: Text(
+                      'Choose the format to export your transaction history.',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    actions: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () {
+                            exportWithLoading('CSV', () => ExportService.exportTransactionsToCSV(transactions));
+                          },
+                          style: TextButton.styleFrom(
+                            backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+                            foregroundColor: Theme.of(context).colorScheme.primary,
+                            minimumSize: const Size(double.infinity, 56),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          child: const Text('CSV', style: TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () {
+                            final categories = ref.read(categoryProvider).value ?? [];
+                            exportWithLoading('PDF', () => ExportService.exportTransactionsToPDF(transactions, categories, symbol));
+                          },
+                          style: TextButton.styleFrom(
+                            backgroundColor: Theme.of(context).colorScheme.primary,
+                            foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                            minimumSize: const Size(double.infinity, 56),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          child: const Text('PDF', style: TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ],
+                  );
                 },
               ),
               _buildDivider(context),
@@ -173,9 +303,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 context,
                 'Clear All Data',
                 '',
+                icon: Icons.delete_sweep_rounded,
                 isDestructive: true,
                 onTap: () {
-                  String confirmationText = '';
+                  final ValueNotifier<String> confirmationText = ValueNotifier('');
+                  final ValueNotifier<bool> isDeleting = ValueNotifier(false);
+                  final ValueNotifier<String?> errorMessage = ValueNotifier(null);
                   GlassDialog.show(
                     context: context,
                     title: 'Clear All Data',
@@ -184,43 +317,58 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       color: AppColors.expenseAccent,
                       size: 48,
                     ),
-                    content: StatefulBuilder(
-                      builder: (context, setState) {
-                        final theme = Theme.of(context);
-                        return Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Are you sure you want to delete all transactions? This action cannot be undone.',
-                              style: theme.textTheme.bodyMedium,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Type "DELETE" to confirm:',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            GlassCard(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 4,
-                              ),
-                              child: TextField(
-                                onChanged: (val) {
-                                  setState(() {
-                                    confirmationText = val;
-                                  });
-                                },
-                                decoration: const InputDecoration(
-                                  border: InputBorder.none,
-                                  hintText: 'DELETE',
+                    content: ValueListenableBuilder<String>(
+                      valueListenable: confirmationText,
+                      builder: (context, val, _) {
+                        return ValueListenableBuilder<String?>(
+                          valueListenable: errorMessage,
+                          builder: (context, errorVal, _) {
+                            final theme = Theme.of(context);
+                            return Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Are you sure you want to delete all transactions? This action cannot be undone.',
+                                  style: theme.textTheme.bodyMedium,
                                 ),
-                              ),
-                            ),
-                          ],
+                                if (errorVal != null) ...[
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    errorVal,
+                                    style: TextStyle(
+                                      color: theme.colorScheme.error,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Type "DELETE" to confirm:',
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                GlassCard(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 4,
+                                  ),
+                                  child: TextField(
+                                    onChanged: (newVal) {
+                                      confirmationText.value = newVal;
+                                      errorMessage.value = null; // Clear error on type
+                                    },
+                                    decoration: const InputDecoration(
+                                      border: InputBorder.none,
+                                      hintText: 'DELETE',
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
                         );
                       },
                     ),
@@ -249,36 +397,54 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: StatefulBuilder(
-                          builder: (context, setState) {
-                            return PrimaryButton(
-                              width: double.infinity,
-                              text: 'Delete',
-                            color: AppColors.expenseAccent,
-                            textColor: Colors.white,
-                            onPressed: confirmationText == 'DELETE'
-                                ? () {
-                                    ref
-                                        .read(transactionProvider.notifier)
-                                        .clearAll();
-                                    Navigator.of(
-                                      context,
-                                      rootNavigator: true,
-                                    ).pop();
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'All data cleared successfully',
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                : () {}, // disabled state handled by Button internally if we wanted, but we can just pass empty or null. Wait, PrimaryButton takes required onPressed, so we can't pass null.
-                          );
-                        },
+                        child: ValueListenableBuilder<String>(
+                          valueListenable: confirmationText,
+                          builder: (context, textVal, _) {
+                            return ValueListenableBuilder<bool>(
+                              valueListenable: isDeleting,
+                              builder: (context, isDeletingVal, _) {
+                                return PrimaryButton(
+                                  width: double.infinity,
+                                  text: 'Delete',
+                                  color: AppColors.expenseAccent,
+                                  textColor: Colors.white,
+                                  isLoading: isDeletingVal,
+                                  onPressed: textVal == 'DELETE' && !isDeletingVal
+                                      ? () async {
+                                          isDeleting.value = true;
+                                          errorMessage.value = null;
+                                          await ref
+                                              .read(transactionProvider.notifier)
+                                              .clearAll();
+                                          
+                                          if (!context.mounted) return;
+                                          isDeleting.value = false;
+                                          
+                                          final state = ref.read(transactionProvider);
+                                          if (state.hasError) {
+                                            errorMessage.value = state.error.toString();
+                                          } else {
+                                            Navigator.of(
+                                              context,
+                                              rootNavigator: true,
+                                            ).pop();
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                  'All data cleared successfully',
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                        }
+                                      : () {}, 
+                                );
+                              },
+                            );
+                          },
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
                   );
                 },
               ),
@@ -289,6 +455,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 context,
                 'About Spendly',
                 '',
+                icon: Icons.info_outline_rounded,
                 onTap: () {
                   GlassDialog.show(
                     context: context,
@@ -377,19 +544,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               _buildDivider(context),
               _buildSettingItem(
                 context,
-                'Help Center',
+                'Help & Support',
                 '',
+                icon: Icons.support_agent_rounded,
                 onTap: () {
-                  GlassToast.show(context: context, message: 'Help Center is coming soon!');
-                },
-              ),
-              _buildDivider(context),
-              _buildSettingItem(
-                context,
-                'Contact Support',
-                '',
-                onTap: () {
-                  GlassToast.show(context: context, message: 'Contact Support is coming soon!');
+                  context.pushNamed(RouteNames.helpSupport);
                 },
               ),
               _buildDivider(context),
@@ -397,8 +556,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 context,
                 'Terms & Policies',
                 '',
+                icon: Icons.gavel_rounded,
                 onTap: () {
-                  GlassToast.show(context: context, message: 'Terms & Policies are coming soon!');
+                  context.pushNamed(RouteNames.termsPolicies);
                 },
               ),
               _buildDivider(context),
@@ -406,6 +566,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 context,
                 'App Version',
                 'v1.0.0',
+                icon: Icons.smartphone_rounded,
+                showTrailing: false,
                 onTap: () {
                   GlassToast.show(
                     context: context,
@@ -765,6 +927,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     String label,
     String value, {
     bool isDestructive = false,
+    IconData? icon,
+    bool showTrailing = true,
+    Widget? customTrailing,
     required VoidCallback onTap,
   }) {
     final theme = Theme.of(context);
@@ -778,6 +943,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         child: Row(
           children: [
+            if (icon != null) ...[
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isDestructive 
+                      ? AppColors.expenseAccent.withValues(alpha: 0.1) 
+                      : theme.colorScheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  icon,
+                  size: 20,
+                  color: isDestructive ? AppColors.expenseAccent : theme.colorScheme.primary,
+                ),
+              ),
+              const SizedBox(width: 16),
+            ],
             Text(
               label,
               style: theme.textTheme.titleMedium?.copyWith(color: textColor),
@@ -796,12 +978,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               )
             else
               const Spacer(),
-            if (value.isNotEmpty) const SizedBox(width: 8),
-            Icon(
-              Icons.chevron_right_rounded,
-              color: theme.colorScheme.onSurfaceVariant,
-              size: 20,
-            ),
+            if (showTrailing) ...[
+              if (value.isNotEmpty) const SizedBox(width: 8),
+              customTrailing ?? Icon(
+                Icons.chevron_right_rounded,
+                color: theme.colorScheme.onSurfaceVariant,
+                size: 20,
+              ),
+            ],
           ],
         ),
       ),

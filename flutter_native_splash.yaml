@@ -1,0 +1,7 @@
+flutter_native_splash:
+  color: "#F8F9FA"
+  color_dark: "#121212"
+  android_12:
+    color: "#F8F9FA"
+    color_dark: "#121212"
+    # Note: Android 12 Splash Screen API will automatically use the launcher icon here.

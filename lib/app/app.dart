@@ -5,6 +5,7 @@ import 'package:spendly/shared/providers/sync_provider.dart';
 import 'router/app_router.dart';
 
 import 'package:spendly/shared/providers/theme_provider.dart';
+import 'package:spendly/shared/widgets/biometric_lock_wrapper.dart';
 
 import 'theme/app_theme.dart';
 
@@ -25,6 +26,11 @@ class SpendlyApp extends ConsumerWidget {
       themeMode: themeMode,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
+      builder: (context, child) {
+        return BiometricLockWrapper(
+          child: child ?? const SizedBox(),
+        );
+      },
     );
   }
 }

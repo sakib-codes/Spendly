@@ -8,16 +8,23 @@ final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
 class AppPreferences {
   final String currency;
   final String firstDayOfMonth;
+  final bool useBiometrics;
 
   AppPreferences({
     this.currency = 'BDT (৳)',
     this.firstDayOfMonth = '1st of Month',
+    this.useBiometrics = false,
   });
 
-  AppPreferences copyWith({String? currency, String? firstDayOfMonth}) {
+  AppPreferences copyWith({
+    String? currency,
+    String? firstDayOfMonth,
+    bool? useBiometrics,
+  }) {
     return AppPreferences(
       currency: currency ?? this.currency,
       firstDayOfMonth: firstDayOfMonth ?? this.firstDayOfMonth,
+      useBiometrics: useBiometrics ?? this.useBiometrics,
     );
   }
 }
@@ -31,6 +38,7 @@ class PreferencesNotifier extends Notifier<AppPreferences> {
     return AppPreferences(
       currency: _prefs.getString('currency') ?? 'BDT (৳)',
       firstDayOfMonth: _prefs.getString('firstDayOfMonth') ?? '1st of Month',
+      useBiometrics: _prefs.getBool('useBiometrics') ?? false,
     );
   }
 
@@ -42,6 +50,11 @@ class PreferencesNotifier extends Notifier<AppPreferences> {
   void setFirstDayOfMonth(String day) {
     _prefs.setString('firstDayOfMonth', day);
     state = state.copyWith(firstDayOfMonth: day);
+  }
+  
+  void setUseBiometrics(bool use) {
+    _prefs.setBool('useBiometrics', use);
+    state = state.copyWith(useBiometrics: use);
   }
 }
 

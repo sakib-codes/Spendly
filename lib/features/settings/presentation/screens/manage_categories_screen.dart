@@ -113,7 +113,7 @@ class _ManageCategoriesScreenState
                       child: child,
                     );
                   },
-                  onReorder: (oldIndex, newIndex) {
+                  onReorderItem: (oldIndex, newIndex) {
                     ref.read(categoryProvider.notifier).reorderCategories(oldIndex, newIndex, filtered);
                   },
                   children: List.generate(filtered.length, (index) {
@@ -643,25 +643,26 @@ class _AddCategorySheetState extends ConsumerState<_AddCategorySheet> {
             Text('Select Icon', style: theme.textTheme.titleMedium),
             const SizedBox(height: 12),
             SizedBox(
-              height: 120,
+              height: 180,
               child: GridView.builder(
                 scrollDirection: Axis.horizontal,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
+                  crossAxisCount: 3,
                   mainAxisSpacing: 12,
                   crossAxisSpacing: 12,
                 ),
-                itemCount: CategoryIconHelper.getAllIcons().length,
+                itemCount: CategoryIconHelper.getAllAssets().length,
                 itemBuilder: (context, index) {
-                  final entry = CategoryIconHelper.getAllIcons().entries
+                  final entry = CategoryIconHelper.getAllAssets().entries
                       .elementAt(index);
                   final isSelected = _selectedIconKey == entry.key;
                   final color = CategoryIconHelper.getColor(entry.key);
 
                   return GestureDetector(
                     onTap: () => setState(() => _selectedIconKey = entry.key),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
                         color: isSelected
                             ? color.withValues(alpha: 0.2)

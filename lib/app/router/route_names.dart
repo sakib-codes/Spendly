@@ -13,8 +13,10 @@ class RouteNames {
   static const String settings = 'settings';
   static const String setPassword = 'set_password';
   static const String forgotPassword = 'forgot_password';
+  static const String helpSupport = 'help_support';
+  static const String termsPolicies = 'terms_policies';
+  static const String subscriptions = 'subscriptions';
 }
-
 class RoutePaths {
   static const String splash = '/splash';
   static const String login = '/login';
@@ -30,4 +32,7 @@ class RoutePaths {
   static const String settings = '/settings';
   static const String setPassword = '/set-password';
   static const String forgotPassword = '/forgot-password';
+  static const String helpSupport = '/help-support';
+  static const String termsPolicies = '/terms-policies';
+  static const String subscriptions = '/subscriptions';
 }

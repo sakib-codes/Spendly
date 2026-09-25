@@ -5,7 +5,7 @@ import 'database_migrations.dart';
 
 class AppDatabase {
   static const String _dbName = 'spendly.db';
-  static const int _dbVersion = 7;
+  static const int _dbVersion = 8;
 
   static Database? _database;
 

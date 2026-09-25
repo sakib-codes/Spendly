@@ -10,6 +10,7 @@ import '../../../../app/theme/app_colors.dart';
 import '../../../auth/providers/auth_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:spendly/shared/services/profile_photo_cache.dart';
+import 'package:spendly/shared/providers/recurring_transaction_provider.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -52,6 +53,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           // Pre-load the profile photo cache so it's ready when they visit profile
           final user = FirebaseAuth.instance.currentUser;
           ProfilePhotoCache.instance.load(user?.photoURL);
+          
+          // Process any pending recurring transactions
+          ref.read(recurringTransactionProvider.notifier).processPending();
+          
           context.go(RoutePaths.home);
         } else {
           context.go(RoutePaths.login);

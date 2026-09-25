@@ -37,10 +37,6 @@ class CategoryNotifier extends AsyncNotifier<List<Category>> {
   }
 
   Future<void> reorderCategories(int oldIndex, int newIndex, List<Category> currentList) async {
-    if (oldIndex < newIndex) {
-      newIndex -= 1;
-    }
-    
     final List<Category> reorderedList = List.from(currentList);
     final item = reorderedList.removeAt(oldIndex);
     reorderedList.insert(newIndex, item);
